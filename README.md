@@ -1,5 +1,10 @@
 # scm-simulation-dashboard
 Interactive Supply Chain Simulation &amp; Performance Dashboard — tracks 15 KPIs across P2P, Supplier, S&amp;OP, and Finance with a live what-if simulation engine and bidirectional cascade logic.
+
+<img width="1879" height="976" alt="Screenshot 2026-07-02 022320" src="https://github.com/user-attachments/assets/f2c97cfe-df96-4ae7-a2c1-8e86c81468eb" />
+
+<img width="1891" height="979" alt="Screenshot 2026-07-02 022432" src="https://github.com/user-attachments/assets/95e384bb-6fdc-4293-9b43-bf3aabf0f14a" />
+
 # Supply Chain Simulation & Performance Dashboard
 
 An interactive, data-driven decision-support tool built independently using HTML and JavaScript on a real supply chain dataset.
