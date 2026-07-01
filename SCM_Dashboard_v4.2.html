@@ -1,0 +1,2402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCM Command Centre</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0D1117; --surf:#161B26; --surfB:#1E2435; --surfC:#252A3D;
+    --border:#2A3048; --bB:#363D5A;
+    --text:#E6E8F0; --sub:#8892B0; --mut:#4A5275;
+    --purple:#7C6FFF; --teal:#2DD4BF; --amber:#F59E0B; --coral:#F43F5E;
+    --green:#22C55E; --blue:#60A5FA; --pink:#EC4899;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;}
+  button,select,input,textarea{font-family:inherit;}
+  a{color:inherit;}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+  /* Nav */
+  .navbar{background:var(--surf);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;height:54px;position:sticky;top:0;z-index:100;}
+  .logo{width:30px;height:30px;background:linear-gradient(135deg,var(--purple),var(--teal));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;}
+  .brand{display:flex;align-items:center;gap:10px;margin-right:20px;flex-shrink:0;}
+  .brand-title{font-size:13px;font-weight:800;}
+  .brand-sub{font-size:9px;color:var(--mut);letter-spacing:.07em;text-transform:uppercase;}
+  .tabs{display:flex;gap:2px;}
+  .tab-btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:var(--sub);border-bottom:2px solid transparent;transition:all .15s;}
+  .tab-btn[aria-selected="true"]{background:var(--tabcolor,var(--purple));background:color-mix(in srgb, var(--tabcolor) 12%, transparent);color:var(--tabcolor);border-bottom-color:var(--tabcolor);}
+  .nav-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  .pill{display:flex;align-items:center;gap:5px;color:var(--sub);font-size:10px;}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);}
+  .vdiv{width:1px;height:18px;background:var(--border);}
+  .cap{color:var(--sub);font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;}
+  select.ctrl,button.ctrl{background:var(--surfB);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;outline:none;}
+  select.ctrl:focus,button.ctrl:focus,.tab-btn:focus,.kpi:focus{outline:2px solid var(--blue);outline-offset:2px;}
+  .upload-btn{background:linear-gradient(135deg,var(--purple),var(--teal));border:none;color:#fff;border-radius:6px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .upload-btn:hover{opacity:.9;}
+  /* Filter bar */
+  .filterbar{display:flex;gap:8px;align-items:center;padding:9px 20px;background:var(--surfB);border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:54px;z-index:99;}
+  .filter-badge{padding:3px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:12px;font-size:10px;color:var(--amber);font-weight:600;}
+  .reset-btn{border:1px solid var(--border);color:var(--sub);}
+  .reset-btn.active{border-color:var(--coral);color:var(--coral);font-weight:700;}
+  /* View header */
+  .viewhead{padding:12px 20px 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .viewhead-bar{width:4px;height:18px;border-radius:2px;background:var(--barcolor);}
+  .viewhead-title{font-size:15px;font-weight:800;}
+  .badge-small{padding:2px 10px;background:rgba(245,158,11,.12);border-radius:12px;font-size:10px;color:var(--amber);font-weight:600;}
+  .badge-purple{padding:2px 10px;background:rgba(124,111,255,.12);border-radius:12px;font-size:10px;color:var(--purple);font-weight:600;}
+  /* Content */
+  .content{padding:0 20px 28px;}
+  .view{display:none;flex-direction:column;gap:14px;}
+  .view.active{display:flex;}
+  .grid{display:grid;gap:10px;}
+  .grid-5{grid-template-columns:repeat(5,1fr);}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .grid-2{grid-template-columns:1fr 1fr;gap:12px;}
+  .grid-2-6-4{grid-template-columns:1.6fr 1fr;gap:12px;}
+  .grid-2-5-4{grid-template-columns:1.5fr 1fr;gap:12px;}
+  .grid-2-2-1{grid-template-columns:1.2fr 1fr;gap:12px;}
+  .grid-1-1-4-13{grid-template-columns:1fr 1.4fr;gap:12px;}
+  .grid-3col{grid-template-columns:1fr 1fr 1.3fr;gap:12px;}
+  @media (max-width:1000px){
+    .grid-5{grid-template-columns:repeat(2,1fr);}
+    .grid-4{grid-template-columns:repeat(2,1fr);}
+    .grid-2,.grid-2-6-4,.grid-2-5-4,.grid-2-2-1,.grid-1-1-4-13,.grid-3col{grid-template-columns:1fr;}
+  }
+  /* Card */
+  .card{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:16px;min-width:0;}
+  .sh{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+  .sh-bar{width:3px;height:14px;border-radius:2px;background:var(--shcolor,var(--purple));}
+  .sh-title{color:var(--sub);font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;}
+  .sh-count{background:var(--surfB);border:1px solid var(--border);border-radius:12px;padding:2px 8px;color:var(--sub);font-size:9px;}
+  .sh-right{margin-left:auto;}
+  /* KPI */
+  .kpi{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:13px 15px;border-top:3px solid var(--kcolor,var(--sub));position:relative;min-width:0;}
+  .kpi.clickable{cursor:pointer;}
+  .kpi.clickable:hover{box-shadow:0 0 0 1px var(--kcolor);}
+  .kpi-label{color:var(--sub);font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;}
+  .kpi-valrow{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:3px;gap:8px;}
+  .kpi-val{color:var(--text);font-size:20px;font-weight:800;line-height:1;}
+  .kpi-bottom{display:flex;align-items:center;justify-content:space-between;}
+  .kpi-sub{font-size:10px;font-weight:500;color:var(--kcolor,var(--sub));}
+  .kpi-trend{font-size:9px;font-weight:700;}
+  .kpi-drill{position:absolute;top:7px;right:7px;color:var(--mut);font-size:9px;}
+  .kpi-note-dot{position:absolute;top:7px;width:14px;height:14px;border-radius:50%;background:var(--surfB);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:8px;color:var(--mut);z-index:10;}
+  .kpi-note-dot.has-note{background:var(--amber);border-color:var(--amber);color:#1a1200;}
+  .kpi-note-popup{position:absolute;inset:0;background:var(--surfB);border-radius:10px;padding:12px;z-index:20;display:none;flex-direction:column;gap:8px;}
+  .kpi-note-popup.open{display:flex;}
+  .kpi-note-popup textarea{flex:1;background:var(--surfC);border:1px solid var(--bB);border-radius:6px;color:var(--text);font-size:11px;padding:8px;resize:none;font-family:inherit;}
+  .kpi-note-actions{display:flex;gap:8px;}
+  .kpi-note-actions button{flex:1;border-radius:6px;font-size:11px;padding:6px 0;cursor:pointer;}
+  .btn-save{background:var(--purple);border:none;color:#fff;font-weight:600;}
+  .btn-cancel{background:transparent;border:1px solid var(--border);color:var(--sub);}
+  /* Bars */
+  .bar-track{background:var(--surfB);border-radius:4px;height:6px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:4px;transition:width .5s;}
+  /* Tables */
+  .tbl-wrap{overflow-x:auto;overflow-y:auto;max-height:320px;}
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  thead{position:sticky;top:0;background:var(--surf);z-index:1;}
+  th{padding:7px 10px;text-align:center;color:var(--sub);font-weight:600;font-size:9px;letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;}
+  th:first-child{text-align:left;}
+  td{padding:8px 10px;text-align:center;color:var(--text);border-bottom:1px solid rgba(42,48,72,.15);white-space:nowrap;}
+  td:first-child{text-align:left;}
+  tbody tr:nth-child(even){background:var(--surfB);}
+  tbody tr.clickable-row{cursor:pointer;}
+  tbody tr.clickable-row:hover{background:var(--surfC) !important;}
+  .empty-row td{text-align:center;color:var(--mut);padding:24px;}
+  /* Badges */
+  .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;flex-shrink:0;vertical-align:middle;}
+  /* Alert rows */
+  .alert-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;padding:7px 10px;background:var(--surfB);border-radius:6px;border-left:3px solid var(--acolor);}
+  .alert-row.clickable{cursor:pointer;}
+  .alert-row.clickable:hover{background:var(--surfC);}
+  .alert-text{color:var(--text);font-size:10px;line-height:1.5;flex:1;}
+  /* Snapshot rows */
+  .snap-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:3px 4px;border-radius:6px;}
+  .snap-row.clickable{cursor:pointer;}
+  .snap-row.clickable:hover{background:var(--surfB);}
+  .snap-label{color:var(--sub);font-size:11px;flex:1;}
+  .snap-val{font-size:13px;font-weight:800;}
+  /* Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surf);border:1px solid var(--bB);border-radius:14px;width:70%;max-width:720px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.8);}
+  .modal-box.wide{width:92%;max-width:1100px;}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
+  .modal-title{color:var(--text);font-size:14px;font-weight:800;}
+  .modal-close{background:transparent;border:1px solid var(--border);color:var(--sub);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;}
+  .modal-body{overflow-y:auto;padding:20px;flex:1;}
+  /* Upload modal specifics */
+  .dropzone{border:2px dashed var(--bB);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .15s;}
+  .dropzone:hover,.dropzone.dragover{border-color:var(--purple);background:rgba(124,111,255,.06);}
+  .dropzone-icon{font-size:36px;margin-bottom:10px;}
+  .dropzone-text{color:var(--text);font-size:13px;font-weight:600;margin-bottom:4px;}
+  .dropzone-sub{color:var(--sub);font-size:11px;}
+  .upload-types{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px;}
+  .upload-type-chip{background:var(--surfB);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:10px;}
+  .upload-type-chip .ut-name{color:var(--text);font-weight:700;margin-bottom:2px;}
+  .upload-type-chip .ut-status{font-size:9px;}
+  .classify-result{margin-top:18px;padding:14px 16px;background:var(--surfB);border-radius:10px;border:1px solid var(--border);}
+  .classify-confidence{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .mapping-table{width:100%;font-size:11px;border-collapse:collapse;margin-top:10px;}
+  .mapping-table td{padding:5px 8px;border-bottom:1px solid rgba(42,48,72,.2);text-align:left;}
+  .mapping-table .field-ok{color:var(--green);}
+  .mapping-table .field-missing{color:var(--coral);}
+  .confirm-actions{display:flex;gap:10px;margin-top:16px;}
+  .confirm-actions button{flex:1;padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;}
+  .btn-confirm{background:var(--green);border:none;color:#06280f;}
+  .btn-reject{background:transparent;border:1px solid var(--border);color:var(--sub);}
+  .source-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;}
+  .source-sample{background:rgba(74,82,117,.2);color:var(--mut);}
+  .source-uploaded{background:rgba(34,197,94,.15);color:var(--green);}
+  .upload-log{margin-top:14px;max-height:140px;overflow-y:auto;}
+  .upload-log-row{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--surfB);border-radius:6px;margin-bottom:6px;font-size:10px;}
+  /* Kraljic matrix tooltip */
+  .kraljic-tip{position:absolute;background:var(--surfB);border:1px solid var(--bB);border-radius:6px;padding:6px 10px;font-size:10px;pointer-events:none;display:none;z-index:5;}
+
+  /* ── Simulation Panel ── */
+  .sim-toggle{background:linear-gradient(135deg,var(--purple),var(--pink));border:none;color:#fff;border-radius:7px;padding:6px 13px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:opacity .15s;}
+  .sim-toggle:hover{opacity:.85;}
+  .sim-toggle.active{background:linear-gradient(135deg,var(--coral),var(--amber));}
+  .sim-drawer{position:fixed;top:0;right:0;width:320px;height:100vh;background:var(--surf);border-left:1px solid var(--bB);z-index:200;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+  .sim-drawer.open{transform:translateX(0);}
+  .sim-head{padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .sim-head-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .sim-title{font-size:13px;font-weight:800;color:var(--text);}
+  .sim-close{background:transparent;border:1px solid var(--border);color:var(--sub);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;}
+  .sim-health{background:var(--surfB);border-radius:8px;padding:10px 12px;}
+  .sim-health-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);margin-bottom:6px;display:flex;justify-content:space-between;}
+  .sim-health-bar-track{background:var(--surfC);border-radius:4px;height:8px;overflow:hidden;margin-bottom:5px;}
+  .sim-health-bar-fill{height:100%;border-radius:4px;transition:width .4s,background .4s;}
+  .sim-score{font-size:20px;font-weight:800;}
+  .sim-score-sub{font-size:10px;color:var(--sub);margin-top:2px;}
+  .sim-body{flex:1;overflow-y:auto;padding:12px 16px 24px;}
+  .sim-section{margin-bottom:18px;}
+  .sim-section-hd{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--purple);margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+  .sim-row{margin-bottom:12px;}
+  .sim-row-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .sim-row-name{font-size:11px;color:var(--text);font-weight:500;}
+  .sim-row-val{font-size:11px;font-weight:700;}
+  .sim-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:var(--surfC);outline:none;cursor:pointer;transition:background .2s;}
+  .sim-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--purple);cursor:pointer;border:2px solid var(--surf);box-shadow:0 0 4px rgba(124,111,255,.5);}
+  .sim-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--purple);cursor:pointer;border:2px solid var(--surf);}
+  .sim-range-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--mut);margin-top:2px;}
+  .sim-stepper{display:flex;align-items:center;gap:8px;margin-top:4px;}
+  .sim-step-btn{background:var(--surfB);border:1px solid var(--border);color:var(--text);border-radius:5px;width:24px;height:24px;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;}
+  .sim-step-btn:hover{background:var(--surfC);}
+  .sim-step-val{flex:1;text-align:center;font-size:12px;font-weight:700;color:var(--text);}
+  .sim-step-label{font-size:10px;color:var(--sub);}
+  /* Card sim steppers */
+  .card-sim-stepper{display:none;align-items:center;gap:4px;margin-left:auto;}
+  body.sim-mode .card-sim-stepper{display:flex;}
+  .card-step-btn{background:rgba(124,111,255,.15);border:1px solid rgba(124,111,255,.3);color:var(--purple);border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
+  .card-step-btn:hover{background:rgba(124,111,255,.3);}
+  .card-step-display{font-size:9px;font-weight:700;color:var(--purple);min-width:24px;text-align:center;}
+  /* KPI quick sim-jump icon */
+  .kpi-sim-jump{position:absolute;top:8px;width:18px;height:18px;border-radius:5px;background:rgba(124,111,255,.15);border:1px solid rgba(124,111,255,.3);color:var(--purple);font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.75;transition:opacity .15s,transform .15s;}
+  .kpi-sim-jump:hover{opacity:1;transform:scale(1.1);background:rgba(124,111,255,.3);}
+  .sim-row.sim-row-highlight{animation:simPulse 1.4s ease-out 2;border-radius:8px;}
+  @keyframes simPulse{
+    0%{background:rgba(124,111,255,.35);box-shadow:0 0 0 0 rgba(124,111,255,.5);}
+    100%{background:transparent;box-shadow:0 0 0 8px rgba(124,111,255,0);}
+  }
+  .sim-rag{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:4px;vertical-align:middle;}
+  .sim-reset-btn{width:100%;background:var(--surfB);border:1px solid var(--border);color:var(--sub);border-radius:7px;padding:9px;font-size:11px;font-weight:600;cursor:pointer;margin-top:4px;}
+  .sim-reset-btn:hover{border-color:var(--coral);color:var(--coral);}
+  .sim-banner{display:none;background:linear-gradient(90deg,rgba(124,111,255,.15),rgba(236,72,153,.1));border-bottom:1px solid rgba(124,111,255,.3);padding:5px 20px;font-size:10px;font-weight:600;color:var(--purple);text-align:center;letter-spacing:.04em;}
+  .sim-banner.show{display:block;}
+  body.sim-mode .content{transition:margin-right .25s;}
+  body.sim-mode #content{margin-right:320px;}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════ NAVBAR ════════════════════════ -->
+<nav class="navbar" aria-label="Dashboard navigation">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">S</div>
+    <div>
+      <div class="brand-title">SCM Command Centre</div>
+      <div class="brand-sub">P2P · Supplier · S&amp;OP · Finance</div>
+    </div>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Dashboard views" id="tabList"></div>
+  <div class="nav-right">
+    <button class="upload-btn" id="openUploadBtn" type="button" aria-haspopup="dialog">
+      <span aria-hidden="true">⬆</span> Upload Data
+    </button>
+    <div class="vdiv"></div>
+    <div class="pill"><span class="live-dot" aria-hidden="true"></span><span id="dataSourceLabel">Live · Sample Data</span></div>
+    <div class="vdiv"></div>
+    <div class="pill"><span class="dot" style="background:var(--green)"></span><span>On target</span></div>
+    <div class="pill"><span class="dot" style="background:var(--amber)"></span><span>Watch</span></div>
+    <div class="pill"><span class="dot" style="background:var(--coral)"></span><span>Action</span></div>
+    <div id="noteCountBadge" style="display:none" class="badge-purple"></div>
+    <div class="vdiv"></div>
+    <button class="sim-toggle" id="simToggleBtn" type="button" title="Open What-If Simulator">⚡ Simulate</button>
+  </div>
+</nav>
+
+<!-- ════════════════════════ SIM BANNER ════════════════════════ -->
+<div class="sim-banner" id="simBanner">⚡ SIMULATION MODE — drag sliders to explore what-if scenarios. Dashboard updates live.</div>
+
+<!-- ════════════════════════ SIM DRAWER ════════════════════════ -->
+<div class="sim-drawer" id="simDrawer" role="complementary" aria-label="What-If Simulator">
+  <div class="sim-head">
+    <div class="sim-head-row">
+      <div class="sim-title">⚡ What-If Simulator</div>
+      <button class="sim-close" id="simCloseBtn" aria-label="Close simulator">✕</button>
+    </div>
+    <div class="sim-health">
+      <div class="sim-health-label">
+        <span>METRICS IN GREEN</span>
+        <span id="simScoreText">— / —</span>
+      </div>
+      <div class="sim-health-bar-track">
+        <div class="sim-health-bar-fill" id="simHealthBar" style="width:0%;background:var(--coral);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <div class="sim-score" id="simScoreNum">—%</div>
+        <div class="sim-score-sub" id="simScoreSub">Target: ≥95% green</div>
+      </div>
+    </div>
+  </div>
+  <div class="sim-body" id="simBody">
+    <!-- populated by JS -->
+  </div>
+</div>
+
+<!-- ════════════════════════ FILTER BAR ════════════════════════ -->
+<div class="filterbar" role="toolbar" aria-label="Dashboard filters">
+  <span class="cap">Filters</span>
+  <label class="sr-only" for="fMonth">Filter by month</label>
+  <select class="ctrl" id="fMonth"></select>
+  <label class="sr-only" for="fCat">Filter by category</label>
+  <select class="ctrl" id="fCat"></select>
+  <label class="sr-only" for="fSup">Filter by supplier</label>
+  <select class="ctrl" id="fSup"></select>
+  <label class="sr-only" for="fRisk">Filter by risk tier</label>
+  <select class="ctrl" id="fRisk"></select>
+  <button class="ctrl reset-btn" id="resetFilters" type="button">✕ Reset</button>
+  <span id="filterBadge" class="filter-badge" style="display:none"></span>
+  <div style="margin-left:auto;color:var(--mut);font-size:10px;">↗ drill-down · ✎ annotate KPI tiles</div>
+</div>
+
+<!-- ════════════════════════ VIEW HEADER ════════════════════════ -->
+<div class="viewhead">
+  <div class="viewhead-bar" id="viewHeadBar"></div>
+  <div class="viewhead-title" id="viewHeadTitle">Executive Overview</div>
+  <span id="viewFilteredBadge" class="badge-small" style="display:none">Filtered view</span>
+</div>
+
+<!-- ════════════════════════ CONTENT ════════════════════════ -->
+<main class="content" id="content" role="main"></main>
+
+<!-- ════════════════════════ GENERIC MODAL ════════════════════════ -->
+<div class="modal-overlay" id="genericModal" role="dialog" aria-modal="true" aria-labelledby="genericModalTitle">
+  <div class="modal-box" id="genericModalBox">
+    <div class="modal-head">
+      <div class="modal-title" id="genericModalTitle"></div>
+      <button class="modal-close" id="genericModalClose" type="button">✕ Close</button>
+    </div>
+    <div class="modal-body" id="genericModalBody"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════ UPLOAD MODAL ════════════════════════ -->
+<div class="modal-overlay" id="uploadModal" role="dialog" aria-modal="true" aria-labelledby="uploadModalTitle">
+  <div class="modal-box wide">
+    <div class="modal-head">
+      <div class="modal-title" id="uploadModalTitle">⬆ Upload Your Data</div>
+      <button class="modal-close" id="uploadModalClose" type="button">✕ Close</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--sub);font-size:12px;line-height:1.6;margin-top:0;">
+        Upload an Excel (.xlsx) or CSV file containing one of your supply chain data types.
+        The dashboard reads your column headers and automatically detects whether it's PO data,
+        Supplier data, GRN data, Invoices, NCRs, or S&amp;OP plan data — then maps your columns
+        to the dashboard's fields. Upload one file at a time.
+      </p>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload file, click or drag and drop">
+        <div class="dropzone-icon" aria-hidden="true">📂</div>
+        <div class="dropzone-text">Drop your .xlsx or .csv file here, or click to browse</div>
+        <div class="dropzone-sub">Supports Excel (.xlsx, .xls) and CSV files</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+      </div>
+      <div class="upload-types" id="uploadTypesGrid"></div>
+      <div id="classifyResult"></div>
+      <div class="upload-log" id="uploadLog"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ════════════════════════════════════════════════════════════════════════
+// SAMPLE DATA (fallback — used until the user uploads their own)
+// ════════════════════════════════════════════════════════════════════════
+const SAMPLE = {
+po:[
+// PO Master — exact values from supply_chain_dashboard_data.xlsx
+{po:"PO-2024-0001",supplier:"SUP-001",category:"Raw Materials",poValue:250000,status:"Closed",cycleDays:3,month:"Jan-24",matCode:"MAT-101",costCenter:"CC-OPS-01",qtyOrdered:1000,unitPrice:250},
+{po:"PO-2024-0002",supplier:"SUP-002",category:"Logistics",poValue:185000,status:"Closed",cycleDays:4,month:"Jan-24",matCode:"MAT-202",costCenter:"CC-LOG-01",qtyOrdered:1,unitPrice:185000},
+{po:"PO-2024-0003",supplier:"SUP-003",category:"Packaging",poValue:90000,status:"Closed",cycleDays:4,month:"Jan-24",matCode:"MAT-303",costCenter:"CC-OPS-01",qtyOrdered:5000,unitPrice:18},
+{po:"PO-2024-0004",supplier:"SUP-004",category:"IT Services",poValue:320000,status:"Closed",cycleDays:2,month:"Jan-24",matCode:"MAT-404",costCenter:"CC-IT-01",qtyOrdered:1,unitPrice:320000},
+{po:"PO-2024-0005",supplier:"SUP-005",category:"Raw Materials",poValue:370000,status:"Partial",cycleDays:6,month:"Jan-24",matCode:"MAT-505",costCenter:"CC-OPS-01",qtyOrdered:2000,unitPrice:185},
+{po:"PO-2024-0006",supplier:"SUP-001",category:"Raw Materials",poValue:240000,status:"Open",cycleDays:5,month:"Jan-24",matCode:"MAT-102",costCenter:"CC-OPS-02",qtyOrdered:500,unitPrice:480},
+{po:"PO-2024-0007",supplier:"SUP-006",category:"Facilities",poValue:95000,status:"Closed",cycleDays:4,month:"Jan-24",matCode:"MAT-606",costCenter:"CC-FAC-01",qtyOrdered:1,unitPrice:95000},
+{po:"PO-2024-0008",supplier:"SUP-002",category:"Logistics",poValue:220000,status:"Open",cycleDays:5,month:"Feb-24",matCode:"MAT-202",costCenter:"CC-LOG-01",qtyOrdered:1,unitPrice:220000},
+{po:"PO-2024-0009",supplier:"SUP-007",category:"Raw Materials",poValue:285000,status:"Closed",cycleDays:6,month:"Feb-24",matCode:"MAT-707",costCenter:"CC-OPS-01",qtyOrdered:3000,unitPrice:95},
+{po:"PO-2024-0010",supplier:"SUP-003",category:"Packaging",poValue:112000,status:"Open",cycleDays:5,month:"Feb-24",matCode:"MAT-304",costCenter:"CC-OPS-02",qtyOrdered:8000,unitPrice:14},
+{po:"PO-2024-0011",supplier:"SUP-008",category:"Professional Svc",poValue:450000,status:"Closed",cycleDays:3,month:"Feb-24",matCode:"MAT-808",costCenter:"CC-FIN-01",qtyOrdered:1,unitPrice:450000},
+{po:"PO-2024-0012",supplier:"SUP-005",category:"Raw Materials",poValue:315000,status:"Closed",cycleDays:4,month:"Feb-24",matCode:"MAT-506",costCenter:"CC-OPS-01",qtyOrdered:1500,unitPrice:210},
+{po:"PO-2024-0013",supplier:"SUP-009",category:"IT Services",poValue:180000,status:"Open",cycleDays:5,month:"Feb-24",matCode:"MAT-909",costCenter:"CC-IT-01",qtyOrdered:1,unitPrice:180000},
+{po:"PO-2024-0014",supplier:"SUP-001",category:"Raw Materials",poValue:800000,status:"Closed",cycleDays:2,month:"Feb-24",matCode:"MAT-103",costCenter:"CC-OPS-01",qtyOrdered:2500,unitPrice:320},
+{po:"PO-2024-0015",supplier:"SUP-004",category:"IT Services",poValue:275000,status:"Closed",cycleDays:6,month:"Feb-24",matCode:"MAT-405",costCenter:"CC-IT-01",qtyOrdered:1,unitPrice:275000},
+{po:"PO-2024-0016",supplier:"SUP-006",category:"Facilities",poValue:120000,status:"Open",cycleDays:7,month:"Mar-24",matCode:"MAT-607",costCenter:"CC-FAC-01",qtyOrdered:1,unitPrice:120000},
+{po:"PO-2024-0017",supplier:"SUP-007",category:"Raw Materials",poValue:352000,status:"Partial",cycleDays:5,month:"Mar-24",matCode:"MAT-708",costCenter:"CC-OPS-02",qtyOrdered:4000,unitPrice:88},
+{po:"PO-2024-0018",supplier:"SUP-010",category:"Logistics",poValue:310000,status:"Closed",cycleDays:4,month:"Mar-24",matCode:"MAT-110",costCenter:"CC-LOG-01",qtyOrdered:1,unitPrice:310000},
+{po:"PO-2024-0019",supplier:"SUP-002",category:"Logistics",poValue:195000,status:"Open",cycleDays:6,month:"Mar-24",matCode:"MAT-203",costCenter:"CC-LOG-01",qtyOrdered:1,unitPrice:195000},
+{po:"PO-2024-0020",supplier:"SUP-003",category:"Packaging",poValue:96000,status:"Closed",cycleDays:6,month:"Mar-24",matCode:"MAT-305",costCenter:"CC-OPS-01",qtyOrdered:6000,unitPrice:16},
+{po:"PO-2024-0021",supplier:"SUP-005",category:"Raw Materials",poValue:429000,status:"Open",cycleDays:4,month:"Apr-24",matCode:"MAT-507",costCenter:"CC-OPS-01",qtyOrdered:2200,unitPrice:195},
+{po:"PO-2024-0022",supplier:"SUP-008",category:"Professional Svc",poValue:380000,status:"Closed",cycleDays:2,month:"Apr-24",matCode:"MAT-809",costCenter:"CC-HR-01",qtyOrdered:1,unitPrice:380000},
+{po:"PO-2024-0023",supplier:"SUP-001",category:"Raw Materials",poValue:408000,status:"Open",cycleDays:6,month:"Apr-24",matCode:"MAT-104",costCenter:"CC-OPS-02",qtyOrdered:800,unitPrice:510},
+{po:"PO-2024-0024",supplier:"SUP-009",category:"IT Services",poValue:220000,status:"Cancelled",cycleDays:6,month:"Apr-24",matCode:"MAT-910",costCenter:"CC-IT-01",qtyOrdered:1,unitPrice:220000},
+{po:"PO-2024-0025",supplier:"SUP-007",category:"Raw Materials",poValue:322000,status:"Open",cycleDays:5,month:"Apr-24",matCode:"MAT-709",costCenter:"CC-OPS-01",qtyOrdered:3500,unitPrice:92}
+],
+supplier:[
+// Supplier Master — exact values from xlsx; spend computed from PO totals per supplier
+{code:"SUP-001",name:"Ramesh Industries Ltd",category:"Raw Materials",segment:"Strategic",risk:"High",otifTarget:95,terms:"Net45",qScore:88,dScore:85,cScore:82,sScore:90,compScore:100,weightedScore:87.55,certExpiry:"2024-12-31",singleSource:false,status:"Active",spend:1698000,country:"India",state:"Maharashtra"},
+{code:"SUP-002",name:"Mehta Logistics Pvt Ltd",category:"Logistics",segment:"Leverage",risk:"Critical",otifTarget:92,terms:"Net30",qScore:72,dScore:68,cScore:80,sScore:75,compScore:95,weightedScore:75.35,certExpiry:"2024-06-30",singleSource:true,status:"Active",spend:600000,country:"India",state:"Gujarat"},
+{code:"SUP-003",name:"Kapoor Packaging Works",category:"Packaging",segment:"Routine",risk:"Low",otifTarget:95,terms:"Net30",qScore:91,dScore:96,cScore:88,sScore:92,compScore:100,weightedScore:92.70,certExpiry:"2025-03-31",singleSource:false,status:"Active",spend:298000,country:"India",state:"Rajasthan"},
+{code:"SUP-004",name:"TechServe Solutions",category:"IT Services",segment:"Bottleneck",risk:"High",otifTarget:90,terms:"Net45",qScore:85,dScore:90,cScore:75,sScore:88,compScore:100,weightedScore:86.20,certExpiry:"2024-09-30",singleSource:true,status:"Active",spend:595000,country:"India",state:"Karnataka"},
+{code:"SUP-005",name:"Patel Chemicals Ltd",category:"Raw Materials",segment:"Strategic",risk:"High",otifTarget:95,terms:"Net60",qScore:82,dScore:78,cScore:85,sScore:80,compScore:100,weightedScore:83.10,certExpiry:"2024-08-31",singleSource:false,status:"Active",spend:1114000,country:"India",state:"Gujarat"},
+{code:"SUP-006",name:"CleanPro Facilities",category:"Facilities",segment:"Routine",risk:"Low",otifTarget:88,terms:"Net30",qScore:78,dScore:72,cScore:85,sScore:80,compScore:100,weightedScore:80.40,certExpiry:"2024-07-31",singleSource:false,status:"Active",spend:215000,country:"India",state:"Maharashtra"},
+{code:"SUP-007",name:"Sharma Metal Works",category:"Raw Materials",segment:"Leverage",risk:"Medium",otifTarget:93,terms:"Net45",qScore:90,dScore:82,cScore:88,sScore:85,compScore:100,weightedScore:87.85,certExpiry:"2025-01-31",singleSource:false,status:"Active",spend:959000,country:"India",state:"Punjab"},
+{code:"SUP-008",name:"Consulting Partners LLP",category:"Professional Svc",segment:"Strategic",risk:"Medium",otifTarget:90,terms:"Net30",qScore:88,dScore:95,cScore:70,sScore:92,compScore:100,weightedScore:87.95,certExpiry:"2024-11-30",singleSource:false,status:"Active",spend:830000,country:"India",state:"Delhi"},
+{code:"SUP-009",name:"DataSoft Technologies",category:"IT Services",segment:"Bottleneck",risk:"High",otifTarget:90,terms:"Net45",qScore:80,dScore:85,cScore:78,sScore:82,compScore:100,weightedScore:83.15,certExpiry:"2024-10-31",singleSource:true,status:"Under Review",spend:400000,country:"India",state:"Hyderabad"},
+{code:"SUP-010",name:"FastTrack Logistics",category:"Logistics",segment:"Leverage",risk:"Medium",otifTarget:93,terms:"Net30",qScore:85,dScore:88,cScore:82,sScore:90,compScore:100,weightedScore:87.40,certExpiry:"2025-02-28",singleSource:false,status:"Active",spend:310000,country:"India",state:"Maharashtra"}
+],
+grn:[
+// GRN Data — all 18 receipts from xlsx with full qty detail
+{grn:"GRN-2024-001",po:"PO-2024-0001",supplier:"SUP-001",month:"Jan-24",otif:"Yes",qtyOrdered:1000,qtyReceived:1000,qtyRejected:5,qtyAccepted:995,deliveryStatus:"On Time",daysEarlyLate:1,partial:false},
+{grn:"GRN-2024-002",po:"PO-2024-0002",supplier:"SUP-002",month:"Jan-24",otif:"No",qtyOrdered:1,qtyReceived:1,qtyRejected:0,qtyAccepted:1,deliveryStatus:"Late",daysEarlyLate:-1,partial:false},
+{grn:"GRN-2024-003",po:"PO-2024-0003",supplier:"SUP-003",month:"Feb-24",otif:"No",qtyOrdered:5000,qtyReceived:4800,qtyRejected:24,qtyAccepted:4776,deliveryStatus:"On Time",daysEarlyLate:1,partial:true},
+{grn:"GRN-2024-004",po:"PO-2024-0004",supplier:"SUP-004",month:"Jan-24",otif:"Yes",qtyOrdered:1,qtyReceived:1,qtyRejected:0,qtyAccepted:1,deliveryStatus:"On Time",daysEarlyLate:1,partial:false},
+{grn:"GRN-2024-005",po:"PO-2024-0005",supplier:"SUP-005",month:"Feb-24",otif:"No",qtyOrdered:2000,qtyReceived:1800,qtyRejected:0,qtyAccepted:1800,deliveryStatus:"On Time",daysEarlyLate:1,partial:true},
+{grn:"GRN-2024-006",po:"PO-2024-0007",supplier:"SUP-006",month:"Feb-24",otif:"No",qtyOrdered:1,qtyReceived:1,qtyRejected:0,qtyAccepted:1,deliveryStatus:"Late",daysEarlyLate:-1,partial:false},
+{grn:"GRN-2024-007",po:"PO-2024-0009",supplier:"SUP-007",month:"Feb-24",otif:"Yes",qtyOrdered:3000,qtyReceived:3000,qtyRejected:0,qtyAccepted:3000,deliveryStatus:"On Time",daysEarlyLate:1,partial:false},
+{grn:"GRN-2024-008",po:"PO-2024-0011",supplier:"SUP-008",month:"Feb-24",otif:"Yes",qtyOrdered:1,qtyReceived:1,qtyRejected:0,qtyAccepted:1,deliveryStatus:"On Time",daysEarlyLate:2,partial:false},
+{grn:"GRN-2024-009",po:"PO-2024-0012",supplier:"SUP-005",month:"Mar-24",otif:"Yes",qtyOrdered:1500,qtyReceived:1500,qtyRejected:30,qtyAccepted:1470,deliveryStatus:"On Time",daysEarlyLate:1,partial:false},
+{grn:"GRN-2024-010",po:"PO-2024-0014",supplier:"SUP-001",month:"Feb-24",otif:"Yes",qtyOrdered:2500,qtyReceived:2500,qtyRejected:12,qtyAccepted:2488,deliveryStatus:"On Time",daysEarlyLate:1,partial:false},
+{grn:"GRN-2024-011",po:"PO-2024-0015",supplier:"SUP-004",month:"Mar-24",otif:"Yes",qtyOrdered:1,qtyReceived:1,qtyRejected:0,qtyAccepted:1,deliveryStatus:"On Time",daysEarlyLate:1,partial:false},
+{grn:"GRN-2024-012",po:"PO-2024-0017",supplier:"SUP-007",month:"Mar-24",otif:"No",qtyOrdered:4000,qtyReceived:2000,qtyRejected:0,qtyAccepted:2000,deliveryStatus:"On Time",daysEarlyLate:2,partial:true},
+{grn:"GRN-2024-013",po:"PO-2024-0018",supplier:"SUP-010",month:"Mar-24",otif:"Yes",qtyOrdered:1,qtyReceived:1,qtyRejected:0,qtyAccepted:1,deliveryStatus:"On Time",daysEarlyLate:1,partial:false},
+{grn:"GRN-2024-014",po:"PO-2024-0020",supplier:"SUP-003",month:"Mar-24",otif:"Yes",qtyOrdered:6000,qtyReceived:6000,qtyRejected:60,qtyAccepted:5940,deliveryStatus:"On Time",daysEarlyLate:1,partial:false},
+{grn:"GRN-2024-015",po:"PO-2024-0022",supplier:"SUP-008",month:"Apr-24",otif:"Yes",qtyOrdered:1,qtyReceived:1,qtyRejected:0,qtyAccepted:1,deliveryStatus:"On Time",daysEarlyLate:1,partial:false},
+{grn:"GRN-2024-016",po:"PO-2024-0003",supplier:"SUP-003",month:"Feb-24",otif:"No",qtyOrdered:5000,qtyReceived:200,qtyRejected:0,qtyAccepted:200,deliveryStatus:"Late",daysEarlyLate:-13,partial:true},
+{grn:"GRN-2024-017",po:"PO-2024-0005",supplier:"SUP-005",month:"Feb-24",otif:"No",qtyOrdered:2000,qtyReceived:200,qtyRejected:0,qtyAccepted:200,deliveryStatus:"Late",daysEarlyLate:-8,partial:true},
+{grn:"GRN-2024-018",po:"PO-2024-0017",supplier:"SUP-007",month:"Apr-24",otif:"No",qtyOrdered:4000,qtyReceived:2000,qtyRejected:40,qtyAccepted:1960,deliveryStatus:"Late",daysEarlyLate:-12,partial:true}
+],
+invoice:[
+// Invoice & Payment — exact values from xlsx
+{inv:"INV-SUP001-001",supplier:"SUP-001",month:"Jan-24",category:"Raw Materials",value:249000,matchStatus:"Matched",exReason:"—",payStatus:"Paid",dpo:30,onTime:"Yes"},
+{inv:"INV-SUP002-001",supplier:"SUP-002",month:"Feb-24",category:"Logistics",value:185000,matchStatus:"Matched",exReason:"—",payStatus:"Paid",dpo:32,onTime:"Yes"},
+{inv:"INV-SUP003-001",supplier:"SUP-003",month:"Feb-24",category:"Packaging",value:86400,matchStatus:"Exception",exReason:"Qty mismatch",payStatus:"Paid",dpo:37,onTime:"Yes"},
+{inv:"INV-SUP004-001",supplier:"SUP-004",month:"Feb-24",category:"IT Services",value:320000,matchStatus:"Matched",exReason:"—",payStatus:"Paid",dpo:31,onTime:"Yes"},
+{inv:"INV-SUP005-001",supplier:"SUP-005",month:"Feb-24",category:"Raw Materials",value:360000,matchStatus:"Exception",exReason:"Price mismatch",payStatus:"Paid",dpo:37,onTime:"Yes"},
+{inv:"INV-SUP006-001",supplier:"SUP-006",month:"Feb-24",category:"Facilities",value:97000,matchStatus:"Exception",exReason:"Price mismatch",payStatus:"Overdue",dpo:0,onTime:"No"},
+{inv:"INV-SUP007-001",supplier:"SUP-007",month:"Feb-24",category:"Raw Materials",value:285000,matchStatus:"Matched",exReason:"—",payStatus:"Paid",dpo:30,onTime:"Yes"},
+{inv:"INV-SUP008-001",supplier:"SUP-008",month:"Mar-24",category:"Professional Svc",value:450000,matchStatus:"Matched",exReason:"—",payStatus:"Paid",dpo:30,onTime:"Yes"},
+{inv:"INV-SUP005-002",supplier:"SUP-005",month:"Mar-24",category:"Raw Materials",value:308700,matchStatus:"Matched",exReason:"—",payStatus:"Paid",dpo:30,onTime:"Yes"},
+{inv:"INV-SUP001-002",supplier:"SUP-001",month:"Mar-24",category:"Raw Materials",value:796000,matchStatus:"Matched",exReason:"—",payStatus:"Paid",dpo:30,onTime:"Yes"},
+{inv:"INV-SUP004-002",supplier:"SUP-004",month:"Mar-24",category:"IT Services",value:278000,matchStatus:"Exception",exReason:"Duplicate check",payStatus:"Blocked",dpo:0,onTime:"—"},
+{inv:"INV-SUP007-002",supplier:"SUP-007",month:"Mar-24",category:"Raw Materials",value:176000,matchStatus:"Matched",exReason:"—",payStatus:"Paid",dpo:30,onTime:"Yes"},
+{inv:"INV-SUP010-001",supplier:"SUP-010",month:"Mar-24",category:"Logistics",value:310000,matchStatus:"Matched",exReason:"—",payStatus:"Paid",dpo:30,onTime:"Yes"},
+{inv:"INV-SUP003-002",supplier:"SUP-003",month:"Mar-24",category:"Packaging",value:95040,matchStatus:"Matched",exReason:"—",payStatus:"Paid",dpo:30,onTime:"Yes"},
+{inv:"INV-SUP008-002",supplier:"SUP-008",month:"Apr-24",category:"Professional Svc",value:380000,matchStatus:"Matched",exReason:"—",payStatus:"Pending",dpo:0,onTime:"—"},
+{inv:"INV-SUP002-002",supplier:"SUP-002",month:"Mar-24",category:"Logistics",value:225000,matchStatus:"Exception",exReason:"No GRN posted",payStatus:"Blocked",dpo:0,onTime:"—"},
+{inv:"INV-SUP009-001",supplier:"SUP-009",month:"Mar-24",category:"IT Services",value:182000,matchStatus:"Exception",exReason:"Missing PO ref",payStatus:"Blocked",dpo:0,onTime:"—"}
+],
+ncr:[
+// Quality & NCR — exact values from xlsx with PPM and resolution days
+{ncr:"NCR-2024-001",supplier:"SUP-001",sName:"Ramesh Industries Ltd",month:"Jan-24",severity:"Major",capaStatus:"Closed",chargeback:5000,repeat:false,defect:"Dimensional non-conformance",qtyAffected:5,ppm:5,resDays:14},
+{ncr:"NCR-2024-002",supplier:"SUP-003",sName:"Kapoor Packaging Works",month:"Feb-24",severity:"Minor",capaStatus:"Closed",chargeback:2400,repeat:false,defect:"Print quality defect",qtyAffected:24,ppm:5000,resDays:12},
+{ncr:"NCR-2024-003",supplier:"SUP-005",sName:"Patel Chemicals Ltd",month:"Feb-24",severity:"Critical",capaStatus:"Verified",chargeback:50000,repeat:false,defect:"Contamination in batch",qtyAffected:18,ppm:10000,resDays:21},
+{ncr:"NCR-2024-004",supplier:"SUP-002",sName:"Mehta Logistics Pvt Ltd",month:"Jan-24",severity:"Major",capaStatus:"Closed",chargeback:15000,repeat:false,defect:"Damaged packaging in transit",qtyAffected:1,ppm:1000000,resDays:18},
+{ncr:"NCR-2024-005",supplier:"SUP-007",sName:"Sharma Metal Works",month:"Feb-24",severity:"Minor",capaStatus:"Closed",chargeback:0,repeat:false,defect:"Surface finish non-conformance",qtyAffected:0,ppm:0,resDays:10},
+{ncr:"NCR-2024-006",supplier:"SUP-005",sName:"Patel Chemicals Ltd",month:"Mar-24",severity:"Major",capaStatus:"Submitted",chargeback:30000,repeat:true,defect:"Purity below specification",qtyAffected:30,ppm:20000,resDays:0},
+{ncr:"NCR-2024-007",supplier:"SUP-001",sName:"Ramesh Industries Ltd",month:"Mar-24",severity:"Major",capaStatus:"Open",chargeback:12000,repeat:false,defect:"Hardness test failure",qtyAffected:12,ppm:4800,resDays:0},
+{ncr:"NCR-2024-008",supplier:"SUP-003",sName:"Kapoor Packaging Works",month:"Mar-24",severity:"Critical",capaStatus:"Open",chargeback:60000,repeat:false,defect:"Seal integrity failure",qtyAffected:60,ppm:10000,resDays:0},
+{ncr:"NCR-2024-009",supplier:"SUP-006",sName:"CleanPro Facilities",month:"Feb-24",severity:"Minor",capaStatus:"Closed",chargeback:5000,repeat:false,defect:"Service standard not met",qtyAffected:0,ppm:0,resDays:15},
+{ncr:"NCR-2024-010",supplier:"SUP-002",sName:"Mehta Logistics Pvt Ltd",month:"Mar-24",severity:"Major",capaStatus:"Overdue",chargeback:20000,repeat:true,defect:"Late delivery — no ASN",qtyAffected:0,ppm:0,resDays:0},
+{ncr:"NCR-2024-011",supplier:"SUP-004",sName:"TechServe Solutions",month:"Jan-24",severity:"Major",capaStatus:"Closed",chargeback:15000,repeat:false,defect:"SLA breach — response time",qtyAffected:0,ppm:0,resDays:14},
+{ncr:"NCR-2024-012",supplier:"SUP-007",sName:"Sharma Metal Works",month:"Mar-24",severity:"Critical",capaStatus:"Submitted",chargeback:40000,repeat:false,defect:"Tensile strength below spec",qtyAffected:40,ppm:20000,resDays:0}
+],
+sop:[
+// S&OP Plan — all 19 rows from xlsx with correct gap values
+{code:"PROD-A1",name:"Industrial Valve 40mm",cat:"Industrial",month:"Jan-24",demand:10000,supply:9800,actual:9750,gap:200,gapVal:4875000,fcstAcc:0.9744,planAtt:1.0,risk:"Low",notes:"On track"},
+{code:"PROD-A2",name:"Pump Seal B-Type",cat:"Industrial",month:"Jan-24",demand:8000,supply:8000,actual:7900,gap:0,gapVal:840000,fcstAcc:0.9875,planAtt:1.0,risk:"Low",notes:"Minor gap"},
+{code:"PROD-B1",name:"Chemical Filter Std",cat:"Chemical",month:"Jan-24",demand:5000,supply:5200,actual:5100,gap:-200,gapVal:0,fcstAcc:0.9804,planAtt:0.9904,risk:"Low",notes:"Surplus supply"},
+{code:"PROD-A1",name:"Industrial Valve 40mm",cat:"Industrial",month:"Feb-24",demand:11000,supply:10500,actual:10200,gap:500,gapVal:2000000,fcstAcc:0.9216,planAtt:0.9905,risk:"Medium",notes:"Supplier constraint"},
+{code:"PROD-A2",name:"Pump Seal B-Type",cat:"Chemical",month:"Feb-24",demand:8500,supply:8200,actual:8100,gap:300,gapVal:3360000,fcstAcc:0.9506,planAtt:0.9939,risk:"Medium",notes:"Capacity limited"},
+{code:"PROD-B1",name:"Chemical Filter Std",cat:"Chemical",month:"Feb-24",demand:5500,supply:5800,actual:5600,gap:-300,gapVal:0,fcstAcc:0.9821,planAtt:0.9914,risk:"Low",notes:"Surplus carry"},
+{code:"PROD-C1",name:"Bearing Assembly 22",cat:"Industrial",month:"Feb-24",demand:4000,supply:4200,actual:4050,gap:-200,gapVal:0,fcstAcc:0.9877,planAtt:0.9762,risk:"Low",notes:"Buffer stock OK"},
+{code:"PROD-A1",name:"Industrial Valve 40mm",cat:"Industrial",month:"Mar-24",demand:12000,supply:10500,actual:10200,gap:1500,gapVal:4500000,fcstAcc:0.8235,planAtt:0.9905,risk:"High",notes:"Supplier SUP-001 constrained"},
+{code:"PROD-A2",name:"Pump Seal B-Type",cat:"Chemical",month:"Mar-24",demand:9000,supply:8800,actual:8650,gap:200,gapVal:2940000,fcstAcc:0.9595,planAtt:0.9943,risk:"Medium",notes:"Material shortage"},
+{code:"PROD-B1",name:"Chemical Filter Std",cat:"Chemical",month:"Mar-24",demand:6000,supply:6200,actual:6100,gap:-200,gapVal:0,fcstAcc:0.9836,planAtt:0.9919,risk:"Low",notes:"On track"},
+{code:"PROD-C1",name:"Bearing Assembly 22",cat:"Industrial",month:"Mar-24",demand:5000,supply:5200,actual:5100,gap:-200,gapVal:0,fcstAcc:0.9804,planAtt:0.9962,risk:"Low",notes:"Surplus"},
+{code:"PROD-D1",name:"Valve Actuator 12V",cat:"Electrical",month:"Mar-24",demand:3000,supply:2800,actual:2750,gap:200,gapVal:3125000,fcstAcc:0.9091,planAtt:0.9929,risk:"High",notes:"Single source SUP-007"},
+{code:"PROD-A1",name:"Industrial Valve 40mm",cat:"Industrial",month:"Apr-24",demand:12500,supply:11000,actual:0,gap:1500,gapVal:0,fcstAcc:null,planAtt:null,risk:"High",notes:"Forecast only"},
+{code:"PROD-A2",name:"Pump Seal B-Type",cat:"Chemical",month:"Apr-24",demand:9500,supply:9200,actual:0,gap:300,gapVal:0,fcstAcc:null,planAtt:null,risk:"Medium",notes:"Forecast only"},
+{code:"PROD-B1",name:"Chemical Filter Std",cat:"Chemical",month:"Apr-24",demand:6500,supply:7000,actual:0,gap:-500,gapVal:0,fcstAcc:null,planAtt:null,risk:"Low",notes:"Surplus forecast"},
+{code:"PROD-C1",name:"Bearing Assembly 22",cat:"Industrial",month:"Apr-24",demand:5500,supply:5500,actual:0,gap:0,gapVal:0,fcstAcc:null,planAtt:null,risk:"Low",notes:"Balanced"},
+{code:"PROD-D1",name:"Valve Actuator 12V",cat:"Electrical",month:"Apr-24",demand:3500,supply:3000,actual:0,gap:500,gapVal:0,fcstAcc:null,planAtt:null,risk:"High",notes:"Procurement action needed"},
+{code:"PROD-A1",name:"Industrial Valve 40mm",cat:"Industrial",month:"May-24",demand:13000,supply:11500,actual:0,gap:1500,gapVal:0,fcstAcc:null,planAtt:null,risk:"High",notes:"Alt supplier being qualified"},
+{code:"PROD-D1",name:"Valve Actuator 12V",cat:"Electrical",month:"May-24",demand:4000,supply:3200,actual:0,gap:800,gapVal:0,fcstAcc:null,planAtt:null,risk:"Critical",notes:"Escalate to Exec S&OP"}
+]
+};
+const CAP_DATA=[
+{id:"CAP-001",supplier:"SUP-002",ncr:"NCR-010",action:"Implement ASN submission within 24h of dispatch",owner:"Mehta Logistics",dueDate:"2024-05-10",status:"Overdue",priority:"High"},
+{id:"CAP-002",supplier:"SUP-005",ncr:"NCR-006",action:"Review and tighten purity QC batch testing protocol",owner:"Patel Chemicals",dueDate:"2024-05-25",status:"In Progress",priority:"High"},
+{id:"CAP-003",supplier:"SUP-001",ncr:"NCR-007",action:"Hardness testing at 100% on affected component line",owner:"Ramesh Industries",dueDate:"2024-06-01",status:"Open",priority:"Medium"},
+{id:"CAP-004",supplier:"SUP-003",ncr:"NCR-008",action:"Replace seal press tooling — immediate recall of Batch B",owner:"Kapoor Packaging",dueDate:"2024-05-20",status:"In Progress",priority:"Critical"},
+{id:"CAP-005",supplier:"SUP-007",ncr:"NCR-012",action:"Tensile test certification required per delivery lot",owner:"Sharma Metal",dueDate:"2024-06-10",status:"Open",priority:"High"},
+{id:"CAP-006",supplier:"SUP-004",ncr:"NCR-011",action:"Update SLA response SOP and escalation matrix",owner:"TechServe",dueDate:"2024-05-30",status:"Completed",priority:"Medium"}
+];
+const SCENARIOS=[
+{id:"A",name:"Do Nothing",demandMet:78,revenue:46500000,cost:8200000,margin:38300000,risk:"High",notes:"Accept all gaps, lose orders"},
+{id:"B",name:"Air Freight Critical Items",demandMet:91,revenue:54200000,cost:9800000,margin:44400000,risk:"Medium",notes:"Premium logistics cost +₹16L"},
+{id:"C",name:"Qualify Alt Supplier",demandMet:95,revenue:56800000,cost:9100000,margin:47700000,risk:"Low",notes:"6-8 week qualification lead time"},
+{id:"D",name:"Overtime Production Run",demandMet:88,revenue:52400000,cost:9400000,margin:43000000,risk:"Medium",notes:"Labour cost +₹12L, quality risk"}
+];
+// MO_TREND: computed from supply_chain_dashboard_data.xlsx (Jan-Apr 2024)
+const MO_TREND={spend:[1550000,2637000,1073000,1759000],otif:[67,38,80,50],matchRate:[100,50,67,100],cycle:[4.0,4.5,5.6,4.6],ncr:[3,4,5,0],dpo:[30,33,30,30]};
+const MONTHS=["Jan","Feb","Mar","Apr"];
+
+// ════════════════════════════════════════════════════════════════════════
+// MUTABLE APP STATE  (live = sample, or replaced per-type by uploads)
+// ════════════════════════════════════════════════════════════════════════
+const DATA = JSON.parse(JSON.stringify(SAMPLE)); // working copy
+const DATA_SOURCE = {po:"sample",supplier:"sample",grn:"sample",invoice:"sample",ncr:"sample",sop:"sample"};
+const FILTERS = {mo:"all",cat:"all",sup:"all",risk:"all"};
+const NOTES = {};
+let currentTab = "exec";
+let SIM_MODE = false; // declared early so render() can reference it safely
+const SIM = {
+  avgCycle: null, matchRate: null, exceptions: null, openPOs: null, blocked: null,
+  avgOtif: null, avgScore: null, openNCRs: null, overdueNCRs: null, chargeback: null,
+  sopGapU: null, sopGapV: null, sopFcstAcc: null, sopPlanAtt: null,
+  dpo: null, spendUnderMgmt: null, maverickPct: null, savingsPct: null,
+  trendMonth: 0, sopProduct: 0,
+};
+
+// ════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════════════════
+const fI = n => n>=1e7 ? `₹${(n/1e7).toFixed(1)}Cr` : n>=1e5 ? `₹${(n/1e5).toFixed(1)}L` : `₹${Math.round(n).toLocaleString("en-IN")}`;
+const fP = n => `${(n*100).toFixed(1)}%`;
+const fN = n => Math.round(n).toLocaleString("en-IN");
+const ro = (v,g,a,inv)=> inv ? (v<=g?"green":v<=a?"amber":"red") : (v>=g?"green":v>=a?"amber":"red");
+const RAG = {green:"var(--green)",amber:"var(--amber)",red:"var(--coral)"};
+const SEG = {Strategic:"var(--purple)",Leverage:"var(--teal)",Bottleneck:"var(--amber)",Routine:"var(--mut)"};
+const RC = {Critical:"var(--coral)",High:"var(--amber)",Medium:"var(--blue)",Low:"var(--green)"};
+const CCols = ["var(--purple)","var(--teal)","var(--blue)","var(--amber)","var(--coral)","var(--pink)"];
+const trD = arr => { const d=arr[arr.length-1]-arr[arr.length-2]; return d>0?"up":d<0?"down":"flat"; };
+const trP = arr => { const l=arr[arr.length-2]; return l?Math.abs((arr[arr.length-1]-l)/Math.abs(l)*100).toFixed(1):0; };
+const daysUntil = dateStr => Math.round((new Date(dateStr)-new Date("2024-04-30"))/86400000);
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function el(tag, attrs={}, children=[]){
+  const e = document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs)){
+    if(k==="class") e.className=v;
+    else if(k==="html") e.innerHTML=v;
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else if(v!==null && v!==undefined) e.setAttribute(k,v);
+  }
+  for(const c of [].concat(children)) if(c) e.appendChild(typeof c==="string" ? document.createTextNode(c) : c);
+  return e;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// FILTERED DATA + METRICS (recomputed on every render)
+// ════════════════════════════════════════════════════════════════════════
+function getFiltered(){
+  const f = FILTERS;
+  return {
+    pos: DATA.po.filter(p=>(f.mo==="all"||p.month===f.mo)&&(f.cat==="all"||p.category===f.cat)&&(f.sup==="all"||p.supplier===f.sup)),
+    sups: DATA.supplier.filter(s=>(f.cat==="all"||s.category===f.cat)&&(f.sup==="all"||s.code===f.sup)&&(f.risk==="all"||s.risk===f.risk)),
+    grns: DATA.grn.filter(g=>(f.mo==="all"||g.month===f.mo)&&(f.sup==="all"||g.supplier===f.sup)),
+    invs: DATA.invoice.filter(i=>(f.mo==="all"||i.month===f.mo)&&(f.cat==="all"||i.category===f.cat)&&(f.sup==="all"||i.supplier===f.sup)),
+    ncrs: DATA.ncr.filter(n=>(f.mo==="all"||n.month===f.mo)&&(f.sup==="all"||n.supplier===f.sup)),
+    sops: DATA.sop.filter(s=>(f.mo==="all"||s.month===f.mo)),
+  };
+}
+function getMetrics(d){
+  const totSpend = d.pos.reduce((a,p)=>a+(p.poValue||0),0);
+  const avgCycle = d.pos.length ? d.pos.reduce((a,p)=>a+(p.cycleDays||0),0)/d.pos.length : 0;
+  const openPOs = d.pos.filter(p=>["Open","Partial"].includes(p.status));
+  const otifRate = d.grns.length ? d.grns.filter(g=>g.otif==="Yes").length/d.grns.length : 0;
+  const matchRate = d.invs.length ? d.invs.filter(i=>i.matchStatus==="Matched").length/d.invs.length : 0;
+  const blocked = d.invs.filter(i=>["Blocked","Overdue"].includes(i.payStatus));
+  const paid = d.invs.filter(i=>i.payStatus==="Paid");
+  const avgDPO = paid.length ? paid.reduce((a,i)=>a+(i.dpo||0),0)/paid.length : 0;
+  const avgScore = d.sups.length ? d.sups.reduce((a,s)=>a+(s.weightedScore||0),0)/d.sups.length : 0;
+  const openNCRs = d.ncrs.filter(n=>["Open","Overdue","Submitted"].includes(n.capaStatus)).length;
+  const overdueNCRs = d.ncrs.filter(n=>n.capaStatus==="Overdue").length;
+  const totalCB = d.ncrs.reduce((a,n)=>a+(n.chargeback||0),0);
+  const sopGapU = d.sops.filter(s=>s.gap>0).reduce((a,s)=>a+s.gap,0);
+  const sopGapV = d.sops.filter(s=>s.gapVal>0).reduce((a,s)=>a+s.gapVal,0);
+  const fcstR = d.sops.filter(s=>s.fcstAcc!==null && s.fcstAcc!==undefined);
+  const avgFcst = fcstR.length ? fcstR.reduce((a,s)=>a+s.fcstAcc,0)/fcstR.length : 0;
+  const paR = d.sops.filter(s=>s.planAtt!==null && s.planAtt!==undefined);
+  const avgPA = paR.length ? paR.reduce((a,s)=>a+s.planAtt,0)/paR.length : 0;
+  const savings = totSpend*0.064, avoid = totSpend*0.037;
+  const spendCat = {}; d.pos.forEach(p=>{ spendCat[p.category]=(spendCat[p.category]||0)+(p.poValue||0); });
+  const certExp = d.sups.filter(s=>s.certExpiry && daysUntil(s.certExpiry)<=90 && daysUntil(s.certExpiry)>=0);
+  const critSup = d.sups.filter(s=>s.risk==="Critical").length;
+  const ssSup = d.sups.filter(s=>s.singleSource).length;
+  const excepts = d.invs.filter(i=>i.matchStatus==="Exception");
+  const totalInv = d.invs.reduce((a,i)=>a+(i.value||0),0);
+  const maverick = totSpend*0.068;
+  return {totSpend,avgCycle,openPOs,otifRate,matchRate,blocked,paid,avgDPO,avgScore,openNCRs,overdueNCRs,totalCB,sopGapU,sopGapV,avgFcst,avgPA,savings,avoid,spendCat,certExp,critSup,ssSup,excepts,totalInv,maverick};
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// REUSABLE UI BUILDERS
+// ════════════════════════════════════════════════════════════════════════
+function card(children){ return el("div",{class:"card"}, children); }
+function sh(title,color,count,right){
+  const wrap = el("div",{class:"sh"});
+  wrap.appendChild(el("div",{class:"sh-bar",style:`background:${color||"var(--purple)"}`}));
+  wrap.appendChild(el("div",{class:"sh-title"},title));
+  if(count!=null) wrap.appendChild(el("span",{class:"sh-count"},String(count)));
+  if(right){ const r=el("div",{class:"sh-right"}); r.appendChild(right); wrap.appendChild(r); }
+  return wrap;
+}
+
+// Card-level ＋/－ stepper — shown only in sim mode
+// simKey: key in SIM, step: amount per click, min/max: bounds, fmt: display formatter
+// onStep(newVal) called after each click
+function makeCardStepper(simKey, baseVal, step, min, max, fmt, onStep){
+  const stepper = el("div",{class:"card-sim-stepper"});
+  const minus   = el("button",{class:"card-step-btn"},"−");
+  const display = el("div",{class:"card-step-display"});
+  const plus    = el("button",{class:"card-step-btn"},"+");
+  // Always read live SIM value so display is correct after rerenders
+  function getCur(){ return SIM[simKey] ?? baseVal; }
+  function refresh(){ display.textContent = fmt(getCur()); }
+  refresh();
+  function step_(dir){
+    const next = Math.min(max, Math.max(min, parseFloat((getCur() + dir*step).toFixed(2))));
+    SIM[simKey] = next;
+    refresh();
+    const rawM = getMetrics(getFiltered());
+    const sv   = getSimValues(rawM);
+    applyCascades(sv, simKey);
+    syncAllSliderUIs();
+    updateSimHealth(getSimValues(getMetrics(getFiltered())));
+    if(onStep) onStep(next);
+    render();
+  }
+  minus.addEventListener("click", e=>{ e.stopPropagation(); step_(-1); });
+  plus.addEventListener("click",  e=>{ e.stopPropagation(); step_(+1); });
+  stepper.appendChild(minus);
+  stepper.appendChild(display);
+  stepper.appendChild(plus);
+  return stepper;
+}
+function badge(label,color){ return el("span",{class:"badge",style:`background:color-mix(in srgb, ${color} 18%, transparent);color:${color};border:1px solid color-mix(in srgb, ${color} 35%, transparent)`},label); }
+function dotSpan(r){ return el("span",{class:"dot",style:`background:${RAG[r]||r}`}); }
+function barEl(v,max,color,h){
+  h = h||6;
+  const track = el("div",{class:"bar-track",style:`height:${h}px`});
+  const pct = Math.min(100, max? (v/max*100):0);
+  track.appendChild(el("div",{class:"bar-fill",style:`width:${pct}%;background:${color||"var(--purple)"};height:100%`}));
+  return track;
+}
+function sparkline(data,color,w,h){
+  w=w||56; h=h||24;
+  if(!data || data.length<2) return el("span",{});
+  const mn=Math.min(...data), mx=Math.max(...data), rng=(mx-mn)||1;
+  const pts = data.map((v,i)=> `${(i/(data.length-1))*w},${h-((v-mn)/rng)*(h-4)-2}`).join(" ");
+  const lastX = w, lastY = h-((data[data.length-1]-mn)/rng)*(h-4)-2;
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns,"svg");
+  svg.setAttribute("width",w); svg.setAttribute("height",h); svg.setAttribute("viewBox",`0 0 ${w} ${h}`);
+  const poly = document.createElementNS(ns,"polyline");
+  poly.setAttribute("points",pts); poly.setAttribute("fill","none"); poly.setAttribute("stroke",color);
+  poly.setAttribute("stroke-width","1.5"); poly.setAttribute("stroke-linecap","round"); poly.setAttribute("stroke-linejoin","round");
+  svg.appendChild(poly);
+  const circ = document.createElementNS(ns,"circle");
+  circ.setAttribute("cx",lastX); circ.setAttribute("cy",lastY); circ.setAttribute("r","2.5"); circ.setAttribute("fill",color);
+  svg.appendChild(circ);
+  return svg;
+}
+function trendArrow(data,good){
+  if(!data||data.length<2) return el("span",{});
+  const t=trD(data), p=trP(data);
+  const isGood=(good==="up"&&t==="up")||(good==="down"&&t==="down")||t==="flat";
+  const col = t==="flat" ? "var(--mut)" : isGood ? "var(--green)" : "var(--coral)";
+  return el("span",{class:"kpi-trend",style:`color:${col}`}, `${t==="up"?"▲":t==="down"?"▼":"—"} ${p}%`);
+}
+let kpiNoteIdCounter=0;
+function kpiTile(opts){
+  // opts: {label, value, sub, r, sparkData, sparkGood, onClick, noteKey}
+  kpiNoteIdCounter++;
+  const id = "kpi"+kpiNoteIdCounter;
+  const col = opts.r ? RAG[opts.r] : "var(--sub)";
+  const wrap = el("div",{class:"kpi"+(opts.onClick?" clickable":""), style:`--kcolor:${col}`, tabindex:"0", role:opts.onClick?"button":null, "aria-label":opts.onClick?`${opts.label}: ${opts.value}. Click to view details.`:null});
+  if(opts.onClick) wrap.addEventListener("click", e=>{ if(!e.target.closest(".kpi-note-dot") && !e.target.closest(".kpi-note-popup")) opts.onClick(); });
+  if(opts.onClick) wrap.addEventListener("keypress", e=>{ if(e.key==="Enter") opts.onClick(); });
+  wrap.appendChild(el("div",{class:"kpi-label"},opts.label));
+  const valrow = el("div",{class:"kpi-valrow"});
+  valrow.appendChild(el("div",{class:"kpi-val"},opts.value));
+  if(opts.sparkData) valrow.appendChild(sparkline(opts.sparkData,col));
+  wrap.appendChild(valrow);
+  const bottom = el("div",{class:"kpi-bottom"});
+  if(opts.sub) bottom.appendChild(el("div",{class:"kpi-sub"},opts.sub));
+  if(opts.sparkData) bottom.appendChild(trendArrow(opts.sparkData,opts.sparkGood));
+  wrap.appendChild(bottom);
+  if(opts.onClick) wrap.appendChild(el("div",{class:"kpi-drill","aria-hidden":"true"},"↗"));
+  // Quick sim-jump icon — opens/focuses the relevant slider in the sim drawer
+  if(opts.simKey){
+    const simIcon = el("div",{
+      class:"kpi-sim-jump",
+      title:"Simulate this metric",
+      "aria-label":"Open simulator for "+opts.label,
+      style:`right:${opts.onClick?40:(opts.noteKey?27:7)}px`
+    },"⚡");
+    simIcon.addEventListener("click", e=>{
+      e.stopPropagation();
+      jumpToSimSlider(opts.simKey);
+    });
+    wrap.appendChild(simIcon);
+  }
+  // Annotation
+  if(opts.noteKey){
+    const hasNote = !!NOTES[opts.noteKey];
+    const noteDot = el("div",{class:"kpi-note-dot"+(hasNote?" has-note":""), style:`right:${opts.onClick?22:7}px`, title:"Add annotation","aria-label":"Add annotation"},"✎");
+    const popup = el("div",{class:"kpi-note-popup"});
+    const ta = el("textarea",{placeholder:"Add context or action..."});
+    ta.value = NOTES[opts.noteKey]||"";
+    const actions = el("div",{class:"kpi-note-actions"});
+    const saveBtn = el("button",{class:"btn-save"},"Save");
+    const cancelBtn = el("button",{class:"btn-cancel"},"Cancel");
+    saveBtn.addEventListener("click", e=>{ e.stopPropagation(); NOTES[opts.noteKey]=ta.value; popup.classList.remove("open"); render(); });
+    cancelBtn.addEventListener("click", e=>{ e.stopPropagation(); popup.classList.remove("open"); });
+    actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
+    popup.appendChild(el("div",{class:"sh-title"}, opts.label+" — note"));
+    popup.appendChild(ta); popup.appendChild(actions);
+    noteDot.addEventListener("click", e=>{ e.stopPropagation(); popup.classList.toggle("open"); });
+    wrap.appendChild(noteDot); wrap.appendChild(popup);
+  }
+  return wrap;
+}
+function tableEl(headers, rows, onRowClick){
+  const wrap = el("div",{class:"tbl-wrap"});
+  const table = el("table");
+  const thead = el("thead");
+  const htr = el("tr");
+  headers.forEach(h=>htr.appendChild(el("th",{},h)));
+  thead.appendChild(htr); table.appendChild(thead);
+  const tbody = el("tbody");
+  if(rows.length===0){
+    const tr = el("tr",{class:"empty-row"});
+    tr.appendChild(el("td",{colspan:headers.length},"No data for current filters"));
+    tbody.appendChild(tr);
+  }
+  rows.forEach((row,ri)=>{
+    const tr = el("tr",{class: onRowClick?"clickable-row":""});
+    if(onRowClick) tr.addEventListener("click",()=>onRowClick(ri));
+    row.forEach(cell=>{
+      const td = el("td");
+      if(cell instanceof Node) td.appendChild(cell); else td.innerHTML = cell;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody); wrap.appendChild(table);
+  return wrap;
+}
+function donutSvg(segs,size){
+  size = size||88;
+  const ns="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(ns,"svg");
+  svg.setAttribute("width",size); svg.setAttribute("height",size); svg.setAttribute("viewBox",`0 0 ${size} ${size}`);
+  const R=size/2-9, cx=size/2, cy=size/2, total=segs.reduce((a,s)=>a+s.v,0);
+  let ang=-Math.PI/2;
+  segs.forEach(s=>{
+    const sw = total? (s.v/total)*2*Math.PI:0;
+    const x1=cx+R*Math.cos(ang), y1=cy+R*Math.sin(ang);
+    ang+=sw;
+    const x2=cx+R*Math.cos(ang), y2=cy+R*Math.sin(ang);
+    const lg = sw>Math.PI?1:0;
+    if(sw>0.01){
+      const path=document.createElementNS(ns,"path");
+      path.setAttribute("d",`M${cx},${cy} L${x1},${y1} A${R},${R} 0 ${lg} 1 ${x2},${y2} Z`);
+      path.setAttribute("fill",s.c); path.setAttribute("stroke","var(--surf)"); path.setAttribute("stroke-width","2");
+      svg.appendChild(path);
+    }
+  });
+  const hole=document.createElementNS(ns,"circle");
+  hole.setAttribute("cx",cx); hole.setAttribute("cy",cy); hole.setAttribute("r",R*0.55); hole.setAttribute("fill","var(--surf)");
+  svg.appendChild(hole);
+  return svg;
+}
+function lineChartSvg(datasets,labels,yMin,yMax,h){
+  h=h||100;
+  const ns="http://www.w3.org/2000/svg";
+  const W=340, H=h, pl=32, pr=12, pt=8, pb=18;
+  const iW=W-pl-pr, iH=H-pt-pb, yRng=(yMax-yMin)||1;
+  const tx=i=> pl+i*(iW/(labels.length-1));
+  const ty=v=> pt+iH-(((v-yMin)/yRng)*iH);
+  const svg=document.createElementNS(ns,"svg");
+  svg.setAttribute("width","100%"); svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.style.overflow="visible";
+  for(let t=0;t<=1;t+=0.25){
+    const v=yMin+t*(yMax-yMin), y=ty(v);
+    const line=document.createElementNS(ns,"line");
+    line.setAttribute("x1",pl);line.setAttribute("y1",y);line.setAttribute("x2",W-pr);line.setAttribute("y2",y);
+    line.setAttribute("stroke","var(--border)"); line.setAttribute("stroke-width","0.5");
+    svg.appendChild(line);
+    const txt=document.createElementNS(ns,"text");
+    txt.setAttribute("x",pl-3); txt.setAttribute("y",y+3); txt.setAttribute("text-anchor","end");
+    txt.setAttribute("fill","var(--mut)"); txt.setAttribute("font-size","7");
+    txt.textContent = Number.isInteger(v)?v:v.toFixed(1);
+    svg.appendChild(txt);
+  }
+  labels.forEach((l,i)=>{
+    const txt=document.createElementNS(ns,"text");
+    txt.setAttribute("x",tx(i)); txt.setAttribute("y",H-3); txt.setAttribute("text-anchor","middle");
+    txt.setAttribute("fill","var(--mut)"); txt.setAttribute("font-size","7"); txt.textContent=l;
+    svg.appendChild(txt);
+  });
+  datasets.forEach(ds=>{
+    const pts = ds.values.map((v,i)=> v!=null? `${tx(i)},${ty(v)}`:null).filter(Boolean).join(" ");
+    const poly=document.createElementNS(ns,"polyline");
+    poly.setAttribute("points",pts); poly.setAttribute("fill","none"); poly.setAttribute("stroke",ds.color);
+    poly.setAttribute("stroke-width","2"); poly.setAttribute("stroke-linecap","round");
+    if(ds.dash) poly.setAttribute("stroke-dasharray","5 3");
+    svg.appendChild(poly);
+    ds.values.forEach((v,i)=>{
+      if(v==null) return;
+      const c=document.createElementNS(ns,"circle");
+      c.setAttribute("cx",tx(i)); c.setAttribute("cy",ty(v)); c.setAttribute("r","3");
+      c.setAttribute("fill",ds.color); c.setAttribute("stroke","var(--surf)"); c.setAttribute("stroke-width","1.5");
+      svg.appendChild(c);
+    });
+  });
+  return svg;
+}
+function legendRow(items){
+  const wrap = el("div",{style:"display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;"});
+  items.forEach(it=>{
+    const r=el("div",{style:"display:flex;align-items:center;gap:5px;"});
+    r.appendChild(el("div",{style:`width:10px;height:${it.dash?"2px":"10px"};background:${it.c};border-radius:2px;${it.dash?`border-top:2px dashed ${it.c};background:none;`:""}`}));
+    r.appendChild(el("span",{style:"color:var(--sub);font-size:10px;"},it.l));
+    wrap.appendChild(r);
+  });
+  return wrap;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ════════════════════════════════════════════════════════════════════════
+function openModal(title, bodyNode, wide){
+  document.getElementById("genericModalTitle").textContent = title;
+  const body = document.getElementById("genericModalBody");
+  body.innerHTML=""; body.appendChild(bodyNode);
+  document.getElementById("genericModalBox").classList.toggle("wide", !!wide);
+  document.getElementById("genericModal").classList.add("open");
+  document.getElementById("genericModalClose").focus();
+}
+function closeModal(){ document.getElementById("genericModal").classList.remove("open"); }
+document.getElementById("genericModalClose").addEventListener("click", closeModal);
+document.getElementById("genericModal").addEventListener("click", e=>{ if(e.target.id==="genericModal") closeModal(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ closeModal(); closeUploadModal(); } });
+
+function poModal(rows,title){
+  openModal(title, tableEl(
+    ["PO","Supplier","Category","Month","Value","Status","Cycle"],
+    rows.map(p=>[
+      el("span",{style:"color:var(--blue);font-weight:600;"},p.po||""),
+      el("span",{},p.supplier||""),
+      badge(p.category||"—","var(--purple)"),
+      el("span",{style:"color:var(--sub)"},p.month||""),
+      el("span",{style:"font-weight:700"},fI(p.poValue||0)),
+      badge(p.status||"—", p.status==="Closed"?"var(--green)":p.status==="Open"?"var(--blue)":p.status==="Partial"?"var(--amber)":"var(--coral)"),
+      el("span",{style:`color:${(p.cycleDays||0)>3?"var(--amber)":"var(--green)"};font-weight:700`},`${p.cycleDays||0}d`),
+    ])
+  ), true);
+}
+function invModal(rows,title){
+  openModal(title, tableEl(
+    ["Invoice","Supplier","Month","Category","Value","Match","Reason","Payment"],
+    rows.map(i=>[
+      el("span",{style:"color:var(--blue);font-weight:600;"},i.inv||""),
+      el("span",{},i.supplier||""),
+      el("span",{style:"color:var(--sub)"},i.month||""),
+      badge(i.category||"—","var(--purple)"),
+      el("span",{style:"font-weight:700"},fI(i.value||0)),
+      badge(i.matchStatus||"—", i.matchStatus==="Matched"?"var(--green)":i.matchStatus==="Exception"?"var(--amber)":"var(--coral)"),
+      el("span",{style:`color:${i.exReason==="—"?"var(--mut)":"var(--amber)"}`},i.exReason||"—"),
+      badge(i.payStatus||"—", i.payStatus==="Paid"?"var(--green)":["Blocked","Overdue"].includes(i.payStatus)?"var(--coral)":"var(--amber)"),
+    ])
+  ), true);
+}
+function supListModal(rows,title){
+  openModal(title, tableEl(
+    ["Supplier","Segment","Risk","Score","Status","Cert Expiry"],
+    rows.map(s=>{
+      const days = s.certExpiry? daysUntil(s.certExpiry):999;
+      const nameLink = el("span",{style:"color:var(--teal);font-weight:700;cursor:pointer;"},s.name+" ↗");
+      nameLink.addEventListener("click",()=>{closeModal(); supplierDeepDive(s);});
+      return [
+        nameLink,
+        badge(s.segment||"—",SEG[s.segment]||"var(--mut)"),
+        badge(s.risk||"—",RC[s.risk]||"var(--mut)"),
+        el("span",{style:`font-weight:800;color:${s.weightedScore>=85?"var(--green)":s.weightedScore>=75?"var(--amber)":"var(--coral)"}`},(s.weightedScore||0).toFixed(1)),
+        badge(s.status||"—", s.status==="Active"?"var(--green)":"var(--amber)"),
+        el("span",{style:`color:${days<=90?"var(--coral)":"var(--sub)"}`}, days<=90?`⚠ ${days}d`:(s.certExpiry||"—")),
+      ];
+    })
+  ));
+}
+function ncrListModal(d){
+  openModal("Open NCRs — Requiring Action", tableEl(
+    ["NCR","Supplier","Defect","Severity","CAPA","Chargeback","Repeat"],
+    d.ncrs.filter(n=>n.capaStatus!=="Closed").map(n=>[
+      el("span",{style:"color:var(--blue)"},n.ncr||""),
+      el("span",{},n.sName||n.supplier||""),
+      el("span",{style:"color:var(--sub)"},n.defect||""),
+      badge(n.severity||"—", n.severity==="Critical"?"var(--coral)":n.severity==="Major"?"var(--amber)":"var(--green)"),
+      badge(n.capaStatus||"—", n.capaStatus==="Overdue"?"var(--coral)":n.capaStatus==="Open"?"var(--amber)":"var(--blue)"),
+      el("span",{style:`color:${n.chargeback>0?"var(--coral)":"var(--mut)"}`}, n.chargeback>0?fI(n.chargeback):"—"),
+      n.repeat? badge("Yes","var(--coral)") : el("span",{style:"color:var(--mut)"},"—"),
+    ])
+  ), true);
+}
+function supplierDeepDive(sup){
+  const pos = DATA.po.filter(p=>p.supplier===sup.code);
+  const grns = DATA.grn.filter(g=>g.supplier===sup.code);
+  const ncrs = DATA.ncr.filter(n=>n.supplier===sup.code);
+  const caps = CAP_DATA.filter(c=>c.supplier===sup.code);
+  const otif = grns.length ? grns.filter(g=>g.otif==="Yes").length/grns.length : null;
+  const r = ro(sup.weightedScore||0,85,75);
+  const pillars = [["Quality",sup.qScore,"30%"],["Delivery",sup.dScore,"25%"],["Cost",sup.cScore,"20%"],["Service",sup.sScore,"15%"],["Compliance",sup.compScore,"10%"]];
+
+  const body = el("div");
+  const topGrid = el("div",{class:"grid grid-5",style:"margin-bottom:18px;"});
+  [
+    ["Weighted Score", `${(sup.weightedScore||0).toFixed(1)}/100`, RAG[r]],
+    ["Total Spend", fI(sup.spend||0), "var(--purple)"],
+    ["OTIF Rate", otif!=null?fP(otif):"No GRNs", otif!=null?RAG[ro(otif*100,95,85)]:"var(--sub)"],
+    ["Open NCRs", ncrs.filter(n=>["Open","Overdue","Submitted"].includes(n.capaStatus)).length, ncrs.filter(n=>["Open","Overdue","Submitted"].includes(n.capaStatus)).length>0?"var(--coral)":"var(--green)"],
+    ["Cert Expiry", sup.certExpiry||"—", sup.certExpiry && daysUntil(sup.certExpiry)<=90 ? "var(--amber)":"var(--green)"],
+  ].forEach(([l,v,c])=>{
+    const box = el("div",{style:"background:var(--surfB);border-radius:8px;padding:12px 14px;border:1px solid var(--border);"});
+    box.appendChild(el("div",{class:"sh-title",style:"margin-bottom:4px"},l));
+    box.appendChild(el("div",{style:`color:${c};font-size:17px;font-weight:800;`},String(v)));
+    topGrid.appendChild(box);
+  });
+  body.appendChild(topGrid);
+  body.appendChild(sh("Scorecard — 5 Pillars","var(--teal)"));
+  const pillarGrid = el("div",{class:"grid grid-5",style:"margin-bottom:18px;"});
+  pillars.forEach(([l,v,w])=>{
+    v = v||0;
+    const pc = ro(v,85,75);
+    const box = el("div",{style:"background:var(--surfB);border-radius:8px;padding:12px 14px;text-align:center;border:1px solid var(--border);"});
+    box.appendChild(el("div",{class:"sh-title",style:"margin-bottom:4px"}, `${l}`));
+    box.appendChild(el("div",{style:"color:var(--mut);font-size:9px;margin-bottom:4px;"},w));
+    box.appendChild(el("div",{style:`color:${RAG[pc]};font-size:22px;font-weight:800;margin-bottom:6px;`},String(v)));
+    box.appendChild(barEl(v,100,RAG[pc],4));
+    pillarGrid.appendChild(box);
+  });
+  body.appendChild(pillarGrid);
+
+  const bottomGrid = el("div",{class:"grid",style:"grid-template-columns:repeat(4,1fr);gap:12px;"});
+  // Profile
+  const profBox = el("div",{style:"background:var(--surfB);border-radius:8px;padding:12px 14px;border:1px solid var(--border);"});
+  profBox.appendChild(sh("Profile","var(--purple)"));
+  [["Segment",sup.segment],["Risk",sup.risk],["Status",sup.status],["Terms",sup.terms],["Single Source",sup.singleSource?"⚠ Yes":"No"]].forEach(([k,v])=>{
+    const row = el("div",{style:"display:flex;justify-content:space-between;margin-bottom:6px;"});
+    row.appendChild(el("span",{style:"color:var(--sub);font-size:10px;"},k));
+    row.appendChild(el("span",{style:"color:var(--text);font-size:10px;font-weight:600;"},String(v||"—")));
+    profBox.appendChild(row);
+  });
+  bottomGrid.appendChild(profBox);
+  // PO History
+  const poBox = el("div",{style:"background:var(--surfB);border-radius:8px;padding:12px 14px;border:1px solid var(--border);"});
+  poBox.appendChild(sh("PO History","var(--blue)"));
+  if(pos.length===0) poBox.appendChild(el("div",{style:"color:var(--mut);font-size:11px;text-align:center;padding-top:16px;"},"No POs in filter"));
+  pos.slice(0,5).forEach(p=>{
+    const row=el("div",{style:"margin-bottom:7px;padding:5px 8px;background:var(--surfC);border-radius:5px;"});
+    row.appendChild(el("div",{style:"color:var(--blue);font-size:10px;font-weight:600;"},p.po||""));
+    const sub=el("div",{style:"display:flex;justify-content:space-between;margin-top:2px;"});
+    sub.appendChild(el("span",{style:"color:var(--sub);font-size:9px;"},`${p.month||""} · ${p.status||""}`));
+    sub.appendChild(el("span",{style:"color:var(--text);font-size:9px;font-weight:700;"},fI(p.poValue||0)));
+    row.appendChild(sub); poBox.appendChild(row);
+  });
+  bottomGrid.appendChild(poBox);
+  // NCR History
+  const ncrBox = el("div",{style:"background:var(--surfB);border-radius:8px;padding:12px 14px;border:1px solid var(--border);"});
+  ncrBox.appendChild(sh("NCR History","var(--coral)"));
+  if(ncrs.length===0) ncrBox.appendChild(el("div",{style:"color:var(--mut);font-size:11px;text-align:center;padding-top:16px;"},"No NCRs raised"));
+  ncrs.forEach(n=>{
+    const sevColor = n.severity==="Critical"?"var(--coral)":n.severity==="Major"?"var(--amber)":"var(--green)";
+    const row=el("div",{style:`margin-bottom:8px;padding:6px 8px;background:var(--surfC);border-radius:5px;border-left:3px solid ${sevColor};`});
+    row.appendChild(el("div",{style:"color:var(--text);font-size:10px;font-weight:600;"},`${n.ncr} · ${n.capaStatus}`));
+    row.appendChild(el("div",{style:"color:var(--sub);font-size:9px;margin-top:2px;"},n.defect||""));
+    if(n.chargeback>0) row.appendChild(el("div",{style:"color:var(--coral);font-size:9px;margin-top:2px;"},`CB: ${fI(n.chargeback)}`));
+    ncrBox.appendChild(row);
+  });
+  bottomGrid.appendChild(ncrBox);
+  // CAPs
+  const capBox = el("div",{style:"background:var(--surfB);border-radius:8px;padding:12px 14px;border:1px solid var(--border);"});
+  capBox.appendChild(sh("CAPs","var(--amber)"));
+  if(caps.length===0) capBox.appendChild(el("div",{style:"color:var(--mut);font-size:11px;text-align:center;padding-top:16px;"},"No CAPs raised"));
+  caps.forEach(c=>{
+    const col=c.status==="Overdue"?"var(--coral)":c.status==="Completed"?"var(--green)":"var(--amber)";
+    const row=el("div",{style:`margin-bottom:8px;padding:6px 8px;background:var(--surfC);border-radius:5px;border-left:3px solid ${col};`});
+    row.appendChild(el("div",{style:"color:var(--text);font-size:10px;font-weight:600;"},c.id+" · "+c.status));
+    row.appendChild(el("div",{style:"color:var(--sub);font-size:9px;margin-top:3px;"},c.action));
+    row.appendChild(el("div",{style:"color:var(--mut);font-size:8px;margin-top:2px;"},"Due: "+c.dueDate));
+    capBox.appendChild(row);
+  });
+  bottomGrid.appendChild(capBox);
+  body.appendChild(bottomGrid);
+  openModal(`${sup.name} — Supplier Deep Dive`, body, true);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// VIEW RENDERERS
+// ════════════════════════════════════════════════════════════════════════
+function renderExec(container, m, d){
+  const cats = Object.entries(m.spendCat).sort((a,b)=>b[1]-a[1]);
+  const TR = m._simTrend || MO_TREND;
+  const kpis = el("div",{class:"grid grid-5"});
+  kpis.appendChild(kpiTile({label:"Total Spend YTD",value:fI(m.totSpend),sub:`${d.pos.length} POs`,r:"green",sparkData:TR.spend,sparkGood:"up",onClick:()=>poModal(d.pos,`All POs (${d.pos.length})`),noteKey:"spend"}));
+  kpis.appendChild(kpiTile({label:"Avg OTIF Rate",value:m.otifRate?fP(m.otifRate):"—",sub:m.otifRate<0.95?"↓ Below 95%":"✓ On target",r:m.otifRate?ro(m.otifRate*100,95,85):null,sparkData:TR.otif,sparkGood:"up",noteKey:"otif",simKey:"avgOtif"}));
+  kpis.appendChild(kpiTile({label:"Hard Savings",value:fI(m.savings),sub:`${fP(m.savings/(m.savings*1.28))} of annual target`,r:"green",sparkData:[3.2,4.1,5.5,m.savings/1e5].map(v=>v*1e5),sparkGood:"up",noteKey:"sav"}));
+  kpis.appendChild(kpiTile({label:"S&OP Gap Value",value:fI(m.sopGapV),sub:`${fN(m.sopGapU)} units shortfall`,r:m.sopGapV>5000000?"red":"amber",sparkData:[572,536,1057,Math.round(m.sopGapU/10)],sparkGood:"down",noteKey:"sop",simKey:"sopGapU"}));
+  kpis.appendChild(kpiTile({label:"Days Payable Out",value:`${m.avgDPO.toFixed(0)}d`,sub:"Target: 45–60d",r:(m.avgDPO>=45&&m.avgDPO<=60)?"green":(m.avgDPO>=35&&m.avgDPO<=70)?"amber":"red",sparkData:TR.dpo,sparkGood:"up",onClick:()=>invModal(d.invs,`Invoice Register (${d.invs.length})`),noteKey:"dpo",simKey:"dpo"}));
+  container.appendChild(kpis);
+
+  const row1 = el("div",{class:"grid grid-2-6-4"});
+  const c1 = card([]); c1.appendChild(sh("OTIF & 3-Way Match Rate — Monthly Trend","var(--teal)",null, (() => { const wrap = el("div",{style:"display:flex;align-items:center;gap:8px;"}); wrap.appendChild(legendRow([{c:"var(--teal)",l:"OTIF %"},{c:"var(--purple)",l:"Match %",dash:true}])); wrap.appendChild(makeCardStepper("avgOtif", 54.9, 2, 0, 100, v=>v.toFixed(0)+"% OTIF")); return wrap; })()));
+  c1.appendChild(lineChartSvg([{label:"OTIF",values:TR.otif,color:"var(--teal)"},{label:"Match",values:TR.matchRate,color:"var(--purple)",dash:true}], MONTHS, 20, 105, 100));
+  const trendRow=el("div",{style:"display:flex;gap:16px;margin-top:4px;"});
+  trendRow.appendChild(el("div",{style:"font-size:10px;color:var(--sub);"},["OTIF: ",trendArrow(TR.otif,"up")]));
+  trendRow.appendChild(el("div",{style:"font-size:10px;color:var(--sub);"},["Match: ",trendArrow(TR.matchRate,"up")]));
+  c1.appendChild(trendRow);
+  row1.appendChild(c1);
+
+  const c2 = card([]); c2.appendChild(sh("Active Alerts","var(--coral)",null, makeCardStepper("exceptions", 6, 1, 0, 17, v=>v.toFixed(0)+" exc")));
+  const alerts = [
+    {r:"red",t:`${m.blocked.length} invoices blocked/overdue — ${fI(m.blocked.reduce((a,i)=>a+i.value,0))} held`,fn:()=>invModal(m.blocked,"Blocked & Overdue Invoices")},
+    {r:"red",t:`${m.openNCRs} open NCRs — ${m.overdueNCRs} CAPA overdue`,fn:()=>ncrListModal(d)},
+    {r:m.critSup>0?"red":"green",t:`${m.critSup} Critical risk supplier(s) in AVL`,fn:()=>supListModal(d.sups.filter(s=>s.risk==="Critical"),"Critical Risk Suppliers")},
+    {r:"amber",t:`${m.certExp.length} supplier certs expiring within 90 days`,fn:()=>supListModal(m.certExp,"Cert Expiry Alert")},
+    {r:"amber",t:`S&OP gap ${fN(m.sopGapU)} units — ${fI(m.sopGapV)} revenue at risk`,fn:null},
+    {r:m.avgCycle>3?"amber":"green",t:`PR→PO cycle avg ${m.avgCycle.toFixed(1)}d — target <3d`,fn:null},
+  ];
+  alerts.forEach(a=>{
+    const row = el("div",{class:"alert-row"+(a.fn?" clickable":""), style:`--acolor:${RAG[a.r]}`});
+    if(a.fn) row.addEventListener("click",a.fn);
+    row.appendChild(dotSpan(a.r));
+    row.appendChild(el("div",{class:"alert-text"},a.t));
+    c2.appendChild(row);
+  });
+  row1.appendChild(c2);
+  container.appendChild(row1);
+
+  const row2 = el("div",{class:"grid grid-2-6-4"});
+  const c3 = card([]); c3.appendChild(sh("Spend by Category YTD","var(--purple)",null, makeCardStepper("savingsPct", 6.4, 0.5, 0, 15, v=>v.toFixed(1)+"% sav")));
+  const donutWrap = el("div",{style:"display:flex;gap:16px;align-items:center;"});
+  donutWrap.appendChild(donutSvg(cats.map(([,v],i)=>({v,c:CCols[i%CCols.length]})),96));
+  const catList = el("div",{style:"flex:1;"});
+  cats.forEach(([k,v],i)=>{
+    const row = el("div",{style:"margin-bottom:7px;cursor:pointer;"});
+    row.addEventListener("click",()=>poModal(d.pos.filter(p=>p.category===k),`${k} POs`));
+    const top = el("div",{style:"display:flex;justify-content:space-between;margin-bottom:2px;"});
+    const left = el("span",{style:"color:var(--sub);font-size:10px;display:flex;align-items:center;gap:5px;"});
+    left.appendChild(el("span",{style:`width:7px;height:7px;border-radius:50%;background:${CCols[i%CCols.length]};display:inline-block;`}));
+    left.appendChild(document.createTextNode(k));
+    top.appendChild(left);
+    top.appendChild(el("span",{style:"color:var(--text);font-size:10px;font-weight:700;"},fI(v)+" ↗"));
+    row.appendChild(top); row.appendChild(barEl(v,m.totSpend,CCols[i%CCols.length]));
+    catList.appendChild(row);
+  });
+  donutWrap.appendChild(catList); c3.appendChild(donutWrap);
+  row2.appendChild(c3);
+
+  const c4 = card([]); c4.appendChild(sh("Savings Tracker YTD","var(--amber)",null, makeCardStepper("savingsPct", 6.4, 0.5, 0, 15, v=>v.toFixed(1)+"%")));
+  [{l:"Hard savings",v:m.savings,tgt:m.savings*1.28,c:"var(--green)"},{l:"Cost avoidance",v:m.avoid,tgt:m.avoid*1.15,c:"var(--blue)"}].forEach(row=>{
+    const w = el("div",{style:"margin-bottom:12px;"});
+    const top = el("div",{style:"display:flex;justify-content:space-between;margin-bottom:4px;"});
+    top.appendChild(el("span",{style:"color:var(--text);font-size:11px;font-weight:600;"},row.l));
+    top.appendChild(el("span",{style:"color:var(--sub);font-size:10px;"},`${fI(row.v)} / ${fI(row.tgt)}`));
+    w.appendChild(top); w.appendChild(barEl(row.v,row.tgt,row.c,7));
+    w.appendChild(el("div",{style:"color:var(--sub);font-size:10px;margin-top:2px;"},`${fP(row.v/row.tgt)} of target`));
+    c4.appendChild(w);
+  });
+  const totalRow=el("div",{style:"border-top:1px solid var(--border);padding-top:10px;"});
+  totalRow.appendChild(el("div",{class:"sh-title",style:"margin-bottom:2px;"},"Total value delivered"));
+  totalRow.appendChild(el("div",{style:"color:var(--green);font-size:16px;font-weight:800;"},fI(m.savings+m.avoid)));
+  c4.appendChild(totalRow);
+  row2.appendChild(c4);
+  container.appendChild(row2);
+}
+
+function renderP2P(container, m, d){
+  const TR = m._simTrend || MO_TREND;
+  const excR = {}; d.invs.filter(i=>i.matchStatus==="Exception").forEach(i=>{ excR[i.exReason]=(excR[i.exReason]||0)+1; });
+  const aging = [{l:"0–30d",v:d.invs.filter(i=>i.dpo>0&&i.dpo<=30).length+3,c:"var(--green)"},{l:"31–60d",v:d.invs.filter(i=>i.dpo>30).length+1,c:"var(--amber)"},{l:"61–90d",v:d.invs.filter(i=>i.payStatus==="Blocked").length,c:"var(--coral)"},{l:"90d+",v:d.invs.filter(i=>i.payStatus==="Overdue").length,c:"var(--coral)"}];
+
+  const kpis = el("div",{class:"grid grid-5"});
+  kpis.appendChild(kpiTile({label:"PR→PO Cycle",value:`${m.avgCycle.toFixed(1)}d`,sub:"Target: <3d",r:ro(m.avgCycle,3,6,true),sparkData:TR.cycle,sparkGood:"down",noteKey:"cyc",simKey:"avgCycle"}));
+  kpis.appendChild(kpiTile({label:"PO Coverage",value:d.pos.length?`${(d.pos.filter(p=>p.status!=="Cancelled").length/d.pos.length*100).toFixed(1)}%`:"—",sub:"Target: >95%",r:"amber",sparkData:[88,92,95,96],sparkGood:"up"}));
+  kpis.appendChild(kpiTile({label:"3-Way Match",value:m.matchRate?fP(m.matchRate):"—",sub:"Target: >85%",r:ro(m.matchRate*100,85,75),sparkData:TR.matchRate,sparkGood:"up",onClick:()=>invModal(d.invs.filter(i=>i.matchStatus==="Matched"),"Matched Invoices"),noteKey:"match",simKey:"matchRate"}));
+  kpis.appendChild(kpiTile({label:"Exceptions",value:String(m.excepts.length),sub:"Need resolution",r:m.excepts.length>3?"red":"amber",sparkData:[2,5,4,m.excepts.length],sparkGood:"down",onClick:()=>invModal(m.excepts,"Invoice Exceptions"),noteKey:"exc",simKey:"exceptions"}));
+  kpis.appendChild(kpiTile({label:"Open POs",value:String(m.openPOs.length),sub:fI(m.openPOs.reduce((a,p)=>a+p.poValue,0)),sparkData:[3,6,5,m.openPOs.length],sparkGood:"down",onClick:()=>poModal(m.openPOs,`Open POs (${m.openPOs.length})`),simKey:"openPOs"}));
+  container.appendChild(kpis);
+
+  const row1 = el("div",{class:"grid grid-2-5-4"});
+  const c1 = card([]); c1.appendChild(sh("Cycle Time vs Target — Monthly","var(--blue)",null, makeCardStepper("avgCycle", 4.6, 0.5, 1, 10, v=>v.toFixed(1)+"d")));
+  c1.appendChild(lineChartSvg([{label:"Cycle",values:TR.cycle,color:"var(--blue)"},{label:"Target",values:[3,3,3,3],color:"var(--coral)",dash:true}], MONTHS,1,10,90));
+  const stats = el("div",{class:"grid grid-5",style:"margin-top:12px;"});
+  [{l:"PRs Open",v:8,c:"var(--sub)"},{l:"In Approval",v:4,c:"var(--amber)"},{l:"POs Issued",v:m.openPOs.length,c:"var(--blue)",fn:()=>poModal(m.openPOs,"Open POs")},{l:"Overdue",v:d.pos.filter(p=>p.status==="Open"&&p.cycleDays>5).length,c:"var(--coral)",fn:()=>poModal(d.pos.filter(p=>p.status==="Open"&&p.cycleDays>5),"Overdue POs")},{l:"Cancelled",v:d.pos.filter(p=>p.status==="Cancelled").length,c:"var(--mut)",fn:()=>poModal(d.pos.filter(p=>p.status==="Cancelled"),"Cancelled POs")}].forEach(s=>{
+    const box=el("div",{style:`text-align:center;padding:8px 4px;background:var(--surfB);border-radius:8px;border:1px solid var(--border);${s.fn?"cursor:pointer;":""}`});
+    if(s.fn) box.addEventListener("click",s.fn);
+    box.appendChild(el("div",{style:`font-size:20px;font-weight:800;color:${s.c}`},String(s.v)));
+    box.appendChild(el("div",{style:"font-size:9px;color:var(--sub);margin-top:2px;"},s.l));
+    stats.appendChild(box);
+  });
+  c1.appendChild(stats);
+  row1.appendChild(c1);
+
+  const c2 = card([]); c2.appendChild(sh("Invoice Exception Queue","var(--amber)",null, makeCardStepper("exceptions", 6, 1, 0, 17, v=>v.toFixed(0)+" exc")));
+  if(Object.keys(excR).length===0) c2.appendChild(el("div",{style:"color:var(--mut);font-size:11px;text-align:center;padding-top:20px;"},"No exceptions in view"));
+  Object.entries(excR).forEach(([r,c])=>{
+    const row = el("div",{style:"display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;padding:5px 8px;border-radius:6px;background:var(--surfB);"});
+    row.addEventListener("click",()=>invModal(d.invs.filter(i=>i.exReason===r),`Exceptions — ${r}`));
+    row.appendChild(el("span",{style:"width:7px;height:7px;border-radius:50%;background:var(--amber);display:inline-block;flex-shrink:0;"}));
+    row.appendChild(el("div",{style:"color:var(--sub);font-size:11px;flex:1;"},r));
+    row.appendChild(badge(`${c} ↗`,"var(--amber)"));
+    c2.appendChild(row);
+  });
+  const agingWrap = el("div",{style:"border-top:1px solid var(--border);margin-top:10px;padding-top:12px;"});
+  agingWrap.appendChild(el("div",{class:"sh-title",style:"margin-bottom:14px;"},"AP Aging Distribution"));
+  const agingBars = el("div",{style:"display:flex;gap:8px;align-items:flex-end;height:64px;"});
+  const maxAging = Math.max(...aging.map(x=>x.v),1);
+  aging.forEach(b=>{
+    const h = Math.max(4,(b.v/maxAging)*40);
+    const bw = el("div",{style:"flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;"});
+    bw.appendChild(el("div",{style:`font-size:10px;color:${b.c};font-weight:700;line-height:1;`},String(b.v)));
+    bw.appendChild(el("div",{style:`width:100%;background:${b.c};border-radius:3px 3px 0 0;height:${h}px;opacity:.85;`}));
+    bw.appendChild(el("div",{style:"font-size:8px;color:var(--mut);line-height:1;white-space:nowrap;"},b.l));
+    agingBars.appendChild(bw);
+  });
+  agingWrap.appendChild(agingBars); c2.appendChild(agingWrap);
+  row1.appendChild(c2);
+  container.appendChild(row1);
+
+  const c3 = card([]); c3.appendChild(sh("Open & Partial PO Detail","var(--blue)",m.openPOs.length, makeCardStepper("openPOs", 11, 1, 0, 25, v=>v.toFixed(0)+" POs")));
+  c3.appendChild(tableEl(["PO","Supplier","Category","Month","Value","Status","Cycle"], m.openPOs.map(p=>[
+    el("span",{style:"color:var(--blue);font-weight:600;"},p.po),
+    el("span",{},p.supplier),
+    badge(p.category,"var(--purple)"),
+    el("span",{style:"color:var(--sub)"},p.month),
+    el("span",{style:"font-weight:700"},fI(p.poValue)),
+    badge(p.status, p.status==="Partial"?"var(--amber)":"var(--blue)"),
+    el("span",{style:`color:${p.cycleDays>3?"var(--amber)":"var(--green)"};font-weight:700`},`${p.cycleDays}d`),
+  ]), i=>poModal([m.openPOs[i]],`PO Detail — ${m.openPOs[i].po}`)));
+  container.appendChild(c3);
+}
+
+function renderSupp(container, m, d){
+  const TR = m._simTrend || MO_TREND;
+  const kpis = el("div",{class:"grid grid-4"});
+  kpis.appendChild(kpiTile({label:"Avg OTIF Rate",value:m.otifRate?fP(m.otifRate):"—",sub:"Target: >95%",r:m.otifRate?ro(m.otifRate*100,95,85):null,sparkData:TR.otif,sparkGood:"up",simKey:"avgOtif"}));
+  kpis.appendChild(kpiTile({label:"Avg Scorecard",value:`${m.avgScore.toFixed(1)}/100`,sub:"Weighted 5-pillar",r:ro(m.avgScore,85,75),sparkData:[84,83,85,m.avgScore],sparkGood:"up",onClick:()=>supListModal(d.sups,"All Supplier Scorecards"),simKey:"avgScore"}));
+  kpis.appendChild(kpiTile({label:"Open NCRs",value:String(m.openNCRs),sub:`${m.overdueNCRs} overdue CAPA`,r:ro(m.openNCRs,0,3,true),sparkData:TR.ncr,sparkGood:"down",onClick:()=>ncrListModal(d),simKey:"openNCRs"}));
+  kpis.appendChild(kpiTile({label:"Total Chargebacks",value:fI(m.totalCB),sub:`${d.ncrs.filter(n=>n.repeat).length} repeat NCRs`,r:ro(m.totalCB,50000,150000,true),sparkData:[35,95,110,Math.round(m.totalCB/1000)].map(v=>v*1e3),sparkGood:"down",simKey:"chargeback"}));
+  container.appendChild(kpis);
+
+  const row1 = el("div",{class:"grid grid-2-2-1"});
+  const c1 = card([]); c1.appendChild(sh("Kraljic Matrix — Supplier Segmentation","var(--purple)",null, makeCardStepper("avgScore", 85.2, 1, 50, 100, v=>v.toFixed(0)+" score")));
+  c1.appendChild(el("div",{style:"color:var(--mut);font-size:9px;margin-bottom:6px;"},"Bubble size = spend · click supplier to open deep-dive"));
+  c1.appendChild(kraljicMatrixSvg(d.sups));
+  row1.appendChild(c1);
+
+  const c2 = card([]); c2.appendChild(sh("OTIF by Supplier","var(--teal)",null, makeCardStepper("avgOtif", 54.9, 2, 0, 100, v=>v.toFixed(0)+"%")));
+  d.sups.forEach(s=>{
+    const sg = d.grns.filter(g=>g.supplier===s.code);
+    if(!sg.length) return;
+    const otif = sg.filter(g=>g.otif==="Yes").length/sg.length;
+    const r = ro(otif*100,95,85);
+    const row = el("div",{style:"margin-bottom:9px;cursor:pointer;padding:4px 6px;border-radius:6px;"});
+    row.addEventListener("click",()=>supplierDeepDive(s));
+    const top = el("div",{style:"display:flex;justify-content:space-between;margin-bottom:3px;"});
+    top.appendChild(el("span",{style:"color:var(--text);font-size:10px;font-weight:600;"},s.name.split(" ").slice(0,2).join(" ")));
+    top.appendChild(el("span",{style:`color:${RAG[r]};font-size:10px;font-weight:700;`},fP(otif)));
+    row.appendChild(top); row.appendChild(barEl(otif*100,100,RAG[r],5));
+    c2.appendChild(row);
+  });
+  row1.appendChild(c2);
+  container.appendChild(row1);
+
+  const c3 = card([]); c3.appendChild(sh("Full Supplier Scorecard — AVL","var(--teal)",d.sups.length, makeCardStepper("avgScore", 85.2, 1, 50, 100, v=>v.toFixed(0)+" score")));
+  c3.appendChild(tableEl(["Supplier","Segment","Risk","Quality","Delivery","Cost","Service","Comp","Score","Cert Expiry","Status"], d.sups.map(s=>{
+    const days = s.certExpiry? daysUntil(s.certExpiry):999;
+    const scoreColor=v=>v>=85?"var(--green)":v>=75?"var(--amber)":"var(--coral)";
+    return [
+      el("span",{style:"color:var(--text);font-weight:700;"},s.name),
+      badge(s.segment||"—",SEG[s.segment]||"var(--mut)"),
+      badge(s.risk||"—",RC[s.risk]||"var(--mut)"),
+      el("span",{style:`color:${scoreColor(s.qScore||0)};font-weight:700;`},String(s.qScore||0)),
+      el("span",{style:`color:${scoreColor(s.dScore||0)};font-weight:700;`},String(s.dScore||0)),
+      el("span",{style:`color:${scoreColor(s.cScore||0)};font-weight:700;`},String(s.cScore||0)),
+      el("span",{style:`color:${scoreColor(s.sScore||0)};font-weight:700;`},String(s.sScore||0)),
+      el("span",{style:"color:var(--green);font-weight:700;"},String(s.compScore||0)),
+      el("span",{style:`color:${scoreColor(s.weightedScore||0)};font-weight:800;font-size:12px;`},(s.weightedScore||0).toFixed(1)),
+      el("span",{style:`color:${days<=90?"var(--coral)":"var(--sub)"};font-size:10px;font-weight:${days<=90?700:400};`}, days<=90?`⚠ ${days}d`:(s.certExpiry||"—")),
+      badge(s.status||"—", s.status==="Active"?"var(--green)":s.status==="Under Review"?"var(--amber)":"var(--coral)"),
+    ];
+  }), i=>supplierDeepDive(d.sups[i])));
+  container.appendChild(c3);
+
+  // Step 5: CAP board + open NCR tracker
+  const c4 = card([]); c4.appendChild(sh("Corrective Action Plans (CAPs)","var(--amber)",null, makeCardStepper("openNCRs", 5, 1, 0, 20, v=>v.toFixed(0)+" NCRs")));
+  CAP_DATA.slice(0,6).forEach(c=>{
+    const col=c.status==="Overdue"?"var(--coral)":c.status==="In Progress"?"var(--amber)":c.status==="Completed"?"var(--green)":"var(--blue)";
+    const row=el("div",{style:`margin-bottom:8px;padding:7px 10px;background:var(--surfB);border-radius:6px;border-left:3px solid ${col};`});
+    const top=el("div",{style:"display:flex;justify-content:space-between;margin-bottom:3px;"});
+    top.appendChild(el("span",{style:"color:var(--text);font-size:10px;font-weight:700;"},`${c.id} · ${c.supplier}`));
+    top.appendChild(badge(c.status,col));
+    row.appendChild(top);
+    row.appendChild(el("div",{style:"color:var(--sub);font-size:9px;margin-bottom:3px;"},c.action));
+    const meta=el("div",{style:"display:flex;justify-content:space-between;"});
+    meta.appendChild(el("span",{style:"color:var(--mut);font-size:8px;"},c.owner));
+    meta.appendChild(el("span",{style:"color:var(--mut);font-size:8px;"},"Due: "+c.dueDate));
+    row.appendChild(meta);
+    c4.appendChild(row);
+  });
+  container.appendChild(c4);
+}
+
+function kraljicMatrixSvg(sups){
+  const ns="http://www.w3.org/2000/svg";
+  const W=310,H=210,pad=28,iW=W-2*pad,iH=H-2*pad;
+  const maxSpend=Math.max(...sups.map(s=>s.spend||0),1);
+  const riskN={Critical:100,High:75,Medium:50,Low:20};
+
+  // In sim mode, shift positions based on simulated supplier score & spend levers
+  const sv = SIM_MODE ? getSimValues(getMetrics(getFiltered())) : null;
+  const scoreShift = sv ? (sv.avgScore - BASE.avgScore) : 0;          // +ve score → lower risk (Y-axis)
+  const savShift    = sv ? (sv.savingsPct - BASE.savingsPct) : 0;     // +ve savings → spend trimmed (X-axis)
+  const mavShift     = sv ? (sv.maverickPct - BASE.maverickPct) : 0;  // +ve maverick → spend inflated (X-axis)
+
+  const toX=s=>{
+    // Savings reduces effective spend; maverick spend inflates it — clamped to stay in-bounds
+    const spendMult = 1 - savShift*0.035 + mavShift*0.025;
+    const adjSpend = Math.max(0,(s.spend||0) * Math.min(1.6, Math.max(0.25, spendMult)));
+    const clampedSpend = Math.min(adjSpend, maxSpend*1.05);
+    return pad+(clampedSpend/maxSpend)*iW;
+  };
+  const toY=s=>{
+    const baseRisk = riskN[s.risk]||50;
+    const adjRisk  = Math.min(100,Math.max(5, baseRisk - scoreShift*0.7));
+    return pad+(1-adjRisk/100)*iH;
+  };
+
+  const svg=document.createElementNS(ns,"svg");
+  svg.setAttribute("width","100%"); svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.style.overflow="visible";
+  const quads=[
+    {x:pad,y:pad,w:iW/2,h:iH/2,label:"Bottleneck",fill:"rgba(245,158,11,.07)"},
+    {x:pad+iW/2,y:pad,w:iW/2,h:iH/2,label:"Strategic",fill:"rgba(124,111,255,.07)"},
+    {x:pad,y:pad+iH/2,w:iW/2,h:iH/2,label:"Routine",fill:"rgba(74,82,117,.05)"},
+    {x:pad+iW/2,y:pad+iH/2,w:iW/2,h:iH/2,label:"Leverage",fill:"rgba(45,212,191,.07)"},
+  ];
+  quads.forEach(q=>{
+    const r=document.createElementNS(ns,"rect");
+    r.setAttribute("x",q.x);r.setAttribute("y",q.y);r.setAttribute("width",q.w);r.setAttribute("height",q.h);
+    r.setAttribute("fill",q.fill); r.setAttribute("stroke","var(--border)"); r.setAttribute("stroke-width","0.5");
+    svg.appendChild(r);
+    const t=document.createElementNS(ns,"text");
+    t.setAttribute("x",q.x+5); t.setAttribute("y",q.y+13); t.setAttribute("fill","var(--mut)"); t.setAttribute("font-size","8"); t.setAttribute("font-weight","bold");
+    t.textContent=q.label; svg.appendChild(t);
+  });
+  [["mid-v",pad+iW/2,pad,pad+iW/2,pad+iH],["mid-h",pad,pad+iH/2,pad+iW,pad+iH/2]].forEach(([,x1,y1,x2,y2])=>{
+    const line=document.createElementNS(ns,"line");
+    line.setAttribute("x1",x1);line.setAttribute("y1",y1);line.setAttribute("x2",x2);line.setAttribute("y2",y2);
+    line.setAttribute("stroke","var(--border)"); line.setAttribute("stroke-width","1"); line.setAttribute("stroke-dasharray","3 2");
+    svg.appendChild(line);
+  });
+  sups.forEach(s=>{
+    const x=toX(s), y=toY(s), sz=Math.min(15,Math.max(8,(s.spend||0)/maxSpend*18));
+    const g=document.createElementNS(ns,"g");
+    g.style.cursor="pointer";
+    g.style.transition="cx 0.3s, cy 0.3s";
+    g.addEventListener("click",()=>supplierDeepDive(s));
+    const circ=document.createElementNS(ns,"circle");
+    circ.setAttribute("cx",x);circ.setAttribute("cy",y);circ.setAttribute("r",sz/2);
+    circ.setAttribute("fill",SEG[s.segment]||"var(--mut)"); circ.setAttribute("opacity","0.85");
+    circ.setAttribute("stroke","var(--surf)"); circ.setAttribute("stroke-width","1");
+    circ.style.transition="cx 0.3s ease, cy 0.3s ease";
+    g.appendChild(circ);
+    const txt=document.createElementNS(ns,"text");
+    txt.setAttribute("x",x);txt.setAttribute("y",y+3);txt.setAttribute("text-anchor","middle");
+    txt.setAttribute("fill","#fff");txt.setAttribute("font-size","6");txt.setAttribute("font-weight","bold");
+    txt.textContent=(s.code||"").replace("SUP-","");
+    txt.style.transition="x 0.3s ease, y 0.3s ease";
+    g.appendChild(txt);
+    svg.appendChild(g);
+  });
+  if(SIM_MODE){
+    const note=document.createElementNS(ns,"text");
+    note.setAttribute("x",W-4); note.setAttribute("y",H-4); note.setAttribute("text-anchor","end");
+    note.setAttribute("fill","var(--purple)"); note.setAttribute("font-size","7"); note.setAttribute("font-style","italic");
+    note.textContent="⚡ live — Y: score · X: savings/maverick";
+    svg.appendChild(note);
+  }
+  return svg;
+}
+
+function renderSOP(container, m, d){
+  const TR = m._simTrend || MO_TREND;
+  const kpis = el("div",{class:"grid grid-4"});
+  kpis.appendChild(kpiTile({label:"Forecast Accuracy",value:m.avgFcst?fP(m.avgFcst):"—",sub:"Avg Jan–Mar",r:m.avgFcst?ro(m.avgFcst*100,90,80):null,sparkData:[97,93,85,Math.round((m.avgFcst||0.953)*100)],sparkGood:"up",noteKey:"fcst",simKey:"sopFcstAcc"}));
+  kpis.appendChild(kpiTile({label:"Plan Attainment",value:m.avgPA?fP(m.avgPA):"—",sub:"Avg Jan–Mar",r:m.avgPA?ro(m.avgPA*100,95,88):null,sparkData:[100,99,99,Math.round((m.avgPA||0.992)*100)],sparkGood:"up",noteKey:"plan",simKey:"sopPlanAtt"}));
+  kpis.appendChild(kpiTile({label:"Demand Gap Units",value:fN(m.sopGapU),sub:"Across all products",r:m.sopGapU>2000?"red":"amber",sparkData:[300,1100,1900,Math.round(m.sopGapU)],sparkGood:"down",noteKey:"gap",simKey:"sopGapU"}));
+  kpis.appendChild(kpiTile({label:"Gap Financial Impact",value:fI(m.sopGapV),sub:"Revenue at risk",r:m.sopGapV>1000000?"red":"amber",sparkData:[571,736,1057,Math.round(m.sopGapV/1000)].map(v=>v*1e3),sparkGood:"down",noteKey:"gapv",simKey:"sopGapU"}));
+  container.appendChild(kpis);
+
+  const mos=["Jan-24","Feb-24","Mar-24","Apr-24","May-24"];
+  const demM = mos.map(mo=>d.sops.filter(s=>s.month===mo).reduce((a,s)=>a+s.demand,0));
+  const supM = mos.map(mo=>d.sops.filter(s=>s.month===mo).reduce((a,s)=>a+s.supply,0));
+  const mx = Math.max(...demM,...supM,1)*1.05;
+
+  const row1 = el("div",{class:"grid grid-2-6-4"});
+  const c1=card([]); c1.appendChild(sh("Demand vs Supply — Rolling 6 Months","var(--pink)",null, (() => { const wrap = el("div",{style:"display:flex;align-items:center;gap:8px;"}); wrap.appendChild(legendRow([{c:"var(--purple)",l:"Demand"},{c:"var(--teal)",l:"Supply",dash:true}])); wrap.appendChild(makeCardStepper("sopGapU", 7500, 500, 0, 15000, v=>fN(v)+" gap")); return wrap; })()));
+  c1.appendChild(lineChartSvg([{label:"Demand",values:demM,color:"var(--purple)"},{label:"Supply",values:supM,color:"var(--teal)",dash:true}], mos.map(m=>m.replace("-24","")), Math.min(...demM,...supM)*0.95, mx, 100));
+  row1.appendChild(c1);
+
+  const c2=card([]); c2.appendChild(sh("Demand Plan Waterfall — Apr 24","var(--amber)",null, makeCardStepper("sopGapU", 7500, 500, 0, 15000, v=>fN(v)+" gap")));
+  const waterfall=[{l:"Stat. Baseline",v:38000,c:"var(--blue)"},{l:"Sales Adj +",v:4200,c:"var(--green)"},{l:"EOL Reduction",v:-1800,c:"var(--coral)"},{l:"NPI Pipeline",v:2100,c:"var(--purple)"},{l:"Final Demand",v:42500,c:"var(--teal)"}];
+  const wfBars=el("div",{style:"display:flex;align-items:flex-end;gap:6px;height:90px;padding-top:10px;"});
+  waterfall.forEach(item=>{
+    const h=Math.abs(item.v/42500)*80;
+    const bw=el("div",{style:"flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"});
+    bw.appendChild(el("div",{style:`font-size:8px;color:${item.v<0?"var(--coral)":"var(--green)"};font-weight:700;`}, item.v>0?`+${fN(item.v)}`:fN(item.v)));
+    bw.appendChild(el("div",{style:`width:100%;background:${item.c};border-radius:2px 2px 0 0;height:${h}px;opacity:.85;`}));
+    bw.appendChild(el("div",{style:"font-size:7px;color:var(--sub);text-align:center;line-height:1.2;"},item.l));
+    wfBars.appendChild(bw);
+  });
+  c2.appendChild(wfBars);
+  const finalBox=el("div",{style:"margin-top:10px;padding:8px 10px;background:var(--surfB);border-radius:6px;border:1px solid var(--border);"});
+  finalBox.appendChild(el("div",{style:"color:var(--sub);font-size:9px;margin-bottom:2px;"},"Final demand plan — Apr 24"));
+  finalBox.appendChild(el("div",{style:"color:var(--teal);font-size:16px;font-weight:800;"},"42,500 units"));
+  c2.appendChild(finalBox);
+  row1.appendChild(c2);
+  container.appendChild(row1);
+
+  // Scenario planner
+  const c3=card([]); c3.appendChild(sh("S&OP Scenario Planner — Closing the Gap","var(--purple)",null, makeCardStepper("sopFcstAcc", 95.3, 1, 50, 100, v=>v.toFixed(0)+"% fcst")));
+  const scGrid=el("div",{class:"grid grid-4",style:"margin-bottom:12px;"});
+  let selScenario=null;
+  const detailsBox=el("div",{id:"scenarioDetails"});
+  function paintScenarios(){
+    scGrid.innerHTML="";
+    SCENARIOS.forEach(sc=>{
+      const sel = selScenario && selScenario.id===sc.id;
+      const box=el("div",{style:`padding:12px 14px;background:${sel?"rgba(124,111,255,.12)":"var(--surfB)"};border:2px solid ${sel?"var(--purple)":"var(--border)"};border-radius:8px;cursor:pointer;`});
+      box.addEventListener("click",()=>{ selScenario = sel?null:sc; paintScenarios(); paintDetails(); });
+      const top=el("div",{style:"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"});
+      top.appendChild(el("span",{style:"color:var(--text);font-size:11px;font-weight:700;"},`Scenario ${sc.id}`));
+      top.appendChild(badge(sc.risk+" risk",RC[sc.risk]));
+      box.appendChild(top);
+      box.appendChild(el("div",{style:"color:var(--purple);font-size:12px;font-weight:700;margin-bottom:4px;"},sc.name));
+      box.appendChild(el("div",{style:"color:var(--green);font-size:13px;font-weight:800;margin-bottom:2px;"},`${sc.demandMet}% demand met`));
+      box.appendChild(el("div",{style:"color:var(--sub);font-size:9px;"},sc.notes));
+      scGrid.appendChild(box);
+    });
+  }
+  function paintDetails(){
+    detailsBox.innerHTML="";
+    if(!selScenario) return;
+    const box=el("div",{style:"padding:12px 16px;background:var(--surfB);border-radius:8px;border:1px solid var(--bB);"});
+    const top=el("div",{style:"display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"});
+    top.appendChild(el("div",{style:"color:var(--text);font-size:13px;font-weight:800;"},`Scenario ${selScenario.id}: ${selScenario.name}`));
+    top.appendChild(badge(selScenario.risk+" risk",RC[selScenario.risk]));
+    box.appendChild(top);
+    const grid=el("div",{class:"grid grid-4"});
+    [["Demand Met",`${selScenario.demandMet}%`,selScenario.demandMet>=90?"var(--green)":"var(--amber)"],["Est. Revenue",fI(selScenario.revenue),"var(--teal)"],["Add. Cost",fI(selScenario.cost),"var(--coral)"],["Net Margin",fI(selScenario.margin),"var(--green)"]].forEach(([l,v,c])=>{
+      const cell=el("div",{style:"text-align:center;"});
+      cell.appendChild(el("div",{class:"sh-title",style:"margin-bottom:3px;"},l));
+      cell.appendChild(el("div",{style:`color:${c};font-size:16px;font-weight:800;`},v));
+      grid.appendChild(cell);
+    });
+    box.appendChild(grid);
+    box.appendChild(el("div",{style:"margin-top:10px;color:var(--sub);font-size:10px;"},selScenario.notes));
+    detailsBox.appendChild(box);
+  }
+  paintScenarios(); paintDetails();
+  c3.appendChild(scGrid); c3.appendChild(detailsBox);
+  container.appendChild(c3);
+
+  // Gap table
+  const c4=card([]); c4.appendChild(sh("Product-Level Gap Analysis","var(--coral)",d.sops.length, makeCardStepper("sopPlanAtt", 99.2, 0.5, 50, 100, v=>v.toFixed(1)+"% PA")));
+  c4.appendChild(tableEl(["Product","Cat","Month","Demand","Supply","Gap","Gap Value","Fcst Acc","Plan Att","Risk"], d.sops.map(s=>[
+    el("span",{style:"color:var(--text);font-weight:700;"},s.name),
+    badge(s.cat||"—","var(--blue)"),
+    el("span",{style:"color:var(--sub)"},s.month),
+    el("span",{},fN(s.demand)),
+    el("span",{},fN(s.supply)),
+    el("span",{style:`color:${s.gap>0?"var(--coral)":s.gap<0?"var(--green)":"var(--sub)"};font-weight:800;`}, s.gap>0?`+${fN(s.gap)}`:fN(s.gap)),
+    el("span",{style:`color:${s.gapVal>0?"var(--coral)":"var(--mut)"}`}, s.gapVal>0?fI(s.gapVal):"—"),
+    el("span",{style:`color:${s.fcstAcc?(ro(s.fcstAcc*100,85,78)==="green"?"var(--green)":"var(--amber)"):"var(--mut)"}`}, s.fcstAcc?fP(s.fcstAcc):"—"),
+    el("span",{style:`color:${s.planAtt?"var(--green)":"var(--mut)"}`}, s.planAtt?fP(s.planAtt):"—"),
+    badge(s.risk||"—",RC[s.risk]||"var(--mut)"),
+  ])));
+  container.appendChild(c4);
+}
+
+function renderFin(container, m, d){
+  const TR = m._simTrend || MO_TREND;
+  const cats = Object.entries(m.spendCat).sort((a,b)=>b[1]-a[1]);
+  const bud=[{dept:"Operations",budget:2800000,actual:2460000,cat:"Raw Materials"},{dept:"IT",budget:800000,actual:920000,cat:"IT Services"},{dept:"Logistics",budget:1200000,actual:910000,cat:"Logistics"},{dept:"Facilities",budget:400000,actual:215000,cat:"Facilities"},{dept:"Finance",budget:600000,actual:450000,cat:"Professional Svc"},{dept:"HR",budget:500000,actual:380000,cat:"Professional Svc"}];
+  const simSUM = m._simSpendUnderMgmt || 87.3;
+  const simMav = m._simMaverickPct    || (m.maverick/m.totSpend*100);
+
+  const kpis = el("div",{class:"grid grid-5"});
+  kpis.appendChild(kpiTile({label:"Total Spend YTD",value:fI(m.totSpend),sub:`${d.pos.length} POs`,r:"green",sparkData:TR.spend,sparkGood:"up",onClick:()=>poModal(d.pos,`Full PO Register (${d.pos.length})`),noteKey:"fs"}));
+  kpis.appendChild(kpiTile({label:"Spend Under Mgmt",value:`${simSUM.toFixed(1)}%`,sub:"Target: >80%",r:ro(simSUM,80,70),sparkData:[84,86,88,simSUM],sparkGood:"up",simKey:"spendUnderMgmt"}));
+  kpis.appendChild(kpiTile({label:"Maverick Spend",value:fI(m.maverick),sub:`${simMav.toFixed(1)}% of total`,r:ro(simMav,5,8,true),sparkData:[8.2,7.5,6.8,simMav],sparkGood:"down",simKey:"maverickPct"}));
+  kpis.appendChild(kpiTile({label:"Hard Savings",value:fI(m.savings),sub:"YTD realised",r:"green",sparkData:[3.2,4.1,5.5,m.savings/1e5].map(v=>v*1e5),sparkGood:"up",simKey:"savingsPct"}));
+  kpis.appendChild(kpiTile({label:"Cost Avoidance",value:fI(m.avoid),sub:"YTD prevented",r:"green",sparkData:[1.8,2.4,3.0,m.avoid/1e5].map(v=>v*1e5),sparkGood:"up"}));
+  container.appendChild(kpis);
+
+  const row1 = el("div",{class:"grid grid-1-1-4-13"});
+  const c1=card([]); c1.appendChild(sh("Spend by Category YTD","var(--amber)",null, makeCardStepper("spendUnderMgmt", 87.3, 1, 50, 100, v=>v.toFixed(0)+"% mgd")));
+  const dw=el("div",{style:"display:flex;gap:14px;align-items:center;"});
+  dw.appendChild(donutSvg(cats.map(([,v],i)=>({v,c:CCols[i%CCols.length]})),90));
+  const list=el("div",{style:"flex:1;"});
+  cats.forEach(([k,v],i)=>{
+    const row=el("div",{style:"margin-bottom:8px;cursor:pointer;"});
+    row.addEventListener("click",()=>poModal(d.pos.filter(p=>p.category===k),`${k} — PO Detail`));
+    const top=el("div",{style:"display:flex;justify-content:space-between;margin-bottom:2px;"});
+    const left=el("span",{style:"color:var(--sub);font-size:10px;display:flex;align-items:center;gap:5px;"});
+    left.appendChild(el("span",{style:`width:7px;height:7px;border-radius:50%;background:${CCols[i%CCols.length]};display:inline-block;`}));
+    left.appendChild(document.createTextNode(k));
+    top.appendChild(left);
+    top.appendChild(el("span",{style:"color:var(--text);font-size:10px;font-weight:700;"},fI(v)+" ↗"));
+    row.appendChild(top); row.appendChild(barEl(v,m.totSpend,CCols[i%CCols.length]));
+    list.appendChild(row);
+  });
+  dw.appendChild(list); c1.appendChild(dw);
+  row1.appendChild(c1);
+
+  const c2=card([]); c2.appendChild(sh("Budget vs Actual — by Department","var(--blue)",null, makeCardStepper("maverickPct", 6.8, 0.5, 0, 30, v=>v.toFixed(1)+"% mav")));
+  bud.forEach(row=>{
+    const util=row.actual/row.budget; const r=util>1?"red":util>0.9?"amber":"green";
+    const w=el("div",{style:"margin-bottom:9px;cursor:pointer;padding:4px 6px;border-radius:6px;"});
+    w.addEventListener("click",()=>poModal(d.pos.filter(p=>p.category===row.cat),`${row.dept} PO Detail`));
+    const top=el("div",{style:"display:flex;justify-content:space-between;margin-bottom:2px;"});
+    top.appendChild(el("span",{style:"color:var(--text);font-size:10px;font-weight:600;"},row.dept));
+    top.appendChild(el("span",{style:`color:${RAG[r]};font-size:10px;font-weight:700;`}, fP(util)+(util>1?" ▲ OVER ↗":"")));
+    w.appendChild(top); w.appendChild(barEl(Math.min(row.actual,row.budget),row.budget,RAG[r],6));
+    const meta=el("div",{style:"display:flex;justify-content:space-between;margin-top:2px;"});
+    meta.appendChild(el("span",{style:"color:var(--mut);font-size:9px;"},`Actual: ${fI(row.actual)}`));
+    meta.appendChild(el("span",{style:"color:var(--mut);font-size:9px;"},`Budget: ${fI(row.budget)}`));
+    w.appendChild(meta); c2.appendChild(w);
+  });
+  row1.appendChild(c2);
+  container.appendChild(row1);
+
+  const row2 = el("div",{class:"grid grid-2"});
+  const c3=card([]); c3.appendChild(sh("Savings vs Target Tracker","var(--green)",null, makeCardStepper("savingsPct", 6.4, 0.5, 0, 15, v=>v.toFixed(1)+"%")));
+  [{l:"Hard savings",v:m.savings,tgt:m.savings*1.28,c:"var(--green)"},{l:"Cost avoidance",v:m.avoid,tgt:m.avoid*1.15,c:"var(--blue)"}].forEach(row=>{
+    const w=el("div",{style:"margin-bottom:14px;"});
+    const top=el("div",{style:"display:flex;justify-content:space-between;margin-bottom:4px;"});
+    top.appendChild(el("span",{style:"color:var(--text);font-size:11px;font-weight:700;"},row.l));
+    top.appendChild(el("span",{style:"color:var(--sub);font-size:10px;"},`${fI(row.v)} / ${fI(row.tgt)}`));
+    w.appendChild(top); w.appendChild(barEl(row.v,row.tgt,row.c,7));
+    w.appendChild(el("div",{style:"color:var(--sub);font-size:10px;margin-top:2px;"},`${fP(row.v/row.tgt)} of target`));
+    c3.appendChild(w);
+  });
+  const tot=el("div",{style:"border-top:1px solid var(--border);padding-top:12px;"});
+  tot.appendChild(el("div",{class:"sh-title",style:"margin-bottom:2px;"},"Total value delivered"));
+  tot.appendChild(el("div",{style:"color:var(--green);font-size:18px;font-weight:800;"},fI(m.savings+m.avoid)));
+  c3.appendChild(tot);
+  row2.appendChild(c3);
+
+  const c4=card([]); c4.appendChild(sh("Invoice Payment Status","var(--coral)",null, makeCardStepper("dpo", 31.4, 5, 10, 90, v=>v.toFixed(0)+"d DPO")));
+  [{l:"Paid on time",c:d.invs.filter(i=>i.payStatus==="Paid"&&i.onTime==="Yes").length,col:"var(--green)",fn:()=>invModal(d.invs.filter(i=>i.payStatus==="Paid"&&i.onTime==="Yes"),"Paid On Time")},
+   {l:"Paid (late)",c:d.invs.filter(i=>i.payStatus==="Paid"&&i.onTime==="No").length,col:"var(--amber)",fn:()=>invModal(d.invs.filter(i=>i.payStatus==="Paid"&&i.onTime==="No"),"Late Paid")},
+   {l:"Pending payment",c:d.invs.filter(i=>i.payStatus==="Pending").length,col:"var(--blue)",fn:()=>invModal(d.invs.filter(i=>i.payStatus==="Pending"),"Pending")},
+   {l:"Blocked in AP",c:d.invs.filter(i=>i.payStatus==="Blocked").length,col:"var(--amber)",fn:()=>invModal(d.invs.filter(i=>i.payStatus==="Blocked"),"Blocked")},
+   {l:"Overdue",c:d.invs.filter(i=>i.payStatus==="Overdue").length,col:"var(--coral)",fn:()=>invModal(d.invs.filter(i=>i.payStatus==="Overdue"),"Overdue Invoices")}].forEach(row=>{
+    const w=el("div",{style:"display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer;padding:4px 6px;border-radius:6px;"});
+    w.addEventListener("click",row.fn);
+    w.appendChild(el("span",{style:`width:8px;height:8px;border-radius:50%;background:${row.col};display:inline-block;flex-shrink:0;`}));
+    w.appendChild(el("div",{style:"color:var(--sub);font-size:11px;flex:1;"},row.l));
+    w.appendChild(el("div",{style:`color:${row.col};font-weight:800;font-size:14px;`},String(row.c)));
+    w.appendChild(el("span",{style:"color:var(--mut);font-size:9px;"},"↗"));
+    c4.appendChild(w);
+  });
+  const sumRow=el("div",{style:"border-top:1px solid var(--border);padding-top:10px;margin-top:4px;display:flex;gap:16px;"});
+  const t1=el("div",{}); t1.appendChild(el("div",{class:"sh-title",style:"margin-bottom:2px;"},"Total invoiced")); t1.appendChild(el("div",{style:"color:var(--text);font-size:14px;font-weight:800;"},fI(m.totalInv)));
+  const t2=el("div",{}); t2.appendChild(el("div",{class:"sh-title",style:"margin-bottom:2px;"},"Avg DPO")); t2.appendChild(el("div",{style:`color:${(m.avgDPO>=45&&m.avgDPO<=60)?"var(--green)":(m.avgDPO>=35&&m.avgDPO<=70)?"var(--amber)":"var(--coral)"};font-size:14px;font-weight:800;`},`${m.avgDPO.toFixed(0)}d`));
+  sumRow.appendChild(t1); sumRow.appendChild(t2); c4.appendChild(sumRow);
+  row2.appendChild(c4);
+  container.appendChild(row2);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// MAIN RENDER
+// ════════════════════════════════════════════════════════════════════════
+const TABS = [
+  {id:"exec",label:"Executive",icon:"◈",color:"var(--purple)",render:renderExec,title:"Executive Overview"},
+  {id:"p2p",label:"P2P Ops",icon:"⟳",color:"var(--blue)",render:renderP2P,title:"P2P Operations"},
+  {id:"supp",label:"Suppliers",icon:"⬡",color:"var(--teal)",render:renderSupp,title:"Supplier Performance"},
+  {id:"sop",label:"S&OP",icon:"⟴",color:"var(--pink)",render:renderSOP,title:"S&OP Planning"},
+  {id:"fin",label:"Finance",icon:"₹",color:"var(--amber)",render:renderFin,title:"Finance & Spend"},
+];
+
+function buildTabs(){
+  const tabList = document.getElementById("tabList");
+  tabList.innerHTML="";
+  tabList.setAttribute("role","tablist");
+  TABS.forEach(t=>{
+    const btn = el("button",{class:"tab-btn",role:"tab","aria-selected": t.id===currentTab?"true":"false", id:"tab-"+t.id, style:`--tabcolor:${t.color}`});
+    btn.appendChild(el("span",{"aria-hidden":"true"},t.icon+" "));
+    btn.appendChild(document.createTextNode(t.label));
+    btn.addEventListener("click",()=>{ currentTab=t.id; render(); });
+    tabList.appendChild(btn);
+  });
+}
+function populateFilterOptions(){
+  const monthSel = document.getElementById("fMonth");
+  const catSel = document.getElementById("fCat");
+  const supSel = document.getElementById("fSup");
+  const riskSel = document.getElementById("fRisk");
+  const months = ["all", ...Array.from(new Set(DATA.po.map(p=>p.month).filter(Boolean)))];
+  const cats = ["all", ...Array.from(new Set(DATA.po.map(p=>p.category).filter(Boolean)))];
+  const sups = DATA.supplier;
+  const risks = ["all","Critical","High","Medium","Low"];
+  monthSel.innerHTML = months.map(m=>`<option value="${esc(m)}">${m==="all"?"All Months":esc(m)}</option>`).join("");
+  catSel.innerHTML = cats.map(c=>`<option value="${esc(c)}">${c==="all"?"All Categories":esc(c)}</option>`).join("");
+  supSel.innerHTML = `<option value="all">All Suppliers</option>` + sups.map(s=>`<option value="${esc(s.code)}">${esc(s.name)}</option>`).join("");
+  riskSel.innerHTML = risks.map(r=>`<option value="${esc(r)}">${r==="all"?"All Risk Tiers":esc(r)}</option>`).join("");
+  monthSel.value = FILTERS.mo; catSel.value = FILTERS.cat; supSel.value = FILTERS.sup; riskSel.value = FILTERS.risk;
+}
+["fMonth","fCat","fSup","fRisk"].forEach(id=>{
+  document.getElementById(id).addEventListener("change", e=>{
+    const map={fMonth:"mo",fCat:"cat",fSup:"sup",fRisk:"risk"};
+    FILTERS[map[id]] = e.target.value;
+    render();
+  });
+});
+document.getElementById("resetFilters").addEventListener("click", ()=>{
+  FILTERS.mo="all"; FILTERS.cat="all"; FILTERS.sup="all"; FILTERS.risk="all";
+  populateFilterOptions(); render();
+});
+
+function render(){
+  buildTabs();
+  const d = getFiltered();
+  const rawM = getMetrics(d);
+  const m = SIM_MODE ? getSimAugmentedMetrics(d, rawM) : rawM;
+  const active = TABS.find(t=>t.id===currentTab);
+
+  // view header
+  document.getElementById("viewHeadBar").style.background = active.color;
+  document.getElementById("viewHeadTitle").textContent = active.title + (SIM_MODE ? "  ⚡" : "");
+  const isF = FILTERS.mo!=="all"||FILTERS.cat!=="all"||FILTERS.sup!=="all"||FILTERS.risk!=="all";
+  document.getElementById("viewFilteredBadge").style.display = isF? "inline-block":"none";
+
+  // filter badge in filter bar
+  const fb = document.getElementById("filterBadge");
+  if(isF){
+    fb.style.display="inline-block";
+    fb.textContent = `Filtered: ${d.pos.length}/${DATA.po.length} POs · ${d.sups.length} suppliers · ${d.invs.length} invoices`;
+  } else fb.style.display="none";
+  document.getElementById("resetFilters").classList.toggle("active", isF);
+
+  // note count
+  const noteCount = Object.values(NOTES).filter(Boolean).length;
+  const ncb = document.getElementById("noteCountBadge");
+  if(noteCount>0){ ncb.style.display="inline-block"; ncb.textContent = `✎ ${noteCount}`; } else ncb.style.display="none";
+
+  // data source label
+  const anyUploaded = Object.values(DATA_SOURCE).some(v=>v==="uploaded");
+  document.getElementById("dataSourceLabel").textContent = SIM_MODE ? "⚡ Simulation Mode" : anyUploaded ? "Live · Your Data" : "Live · Sample Data";
+
+  // content
+  const content = document.getElementById("content");
+  content.innerHTML="";
+  const view = el("div",{class:"view active"});
+  active.render(view, m, d);
+  content.appendChild(view);
+
+  // update sim health panel if open
+  if(SIM_MODE){
+    const sv = getSimValues(rawM);
+    updateSimHealth(sv);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// SMART UPLOAD — column detection engine
+// ════════════════════════════════════════════════════════════════════════
+const FIELD_SIGNATURES = {
+  po:{ label:"PO Master (Purchase Orders)", required:["po","supplier","poValue"],
+    fields:{ po:["po number","po_number","ponumber","po#","po no","purchase order","po id"],
+      supplier:["supplier","supplier code","vendor","vendor code","supplier_code"],
+      category:["category","spend category","item category","commodity"],
+      poValue:["po value","value","amount","po amount","total","line value"],
+      status:["status","po status"], cycleDays:["cycle","cycle time","cycle days","pr to po","lead time"],
+      month:["month","period","po month"] } },
+  supplier:{ label:"Supplier Master (AVL / Scorecard)", required:["code","name"],
+    fields:{ code:["supplier code","code","vendor code","supplier id"], name:["supplier name","name","vendor name","supplier"],
+      category:["category","commodity"], segment:["segment","kraljic","kraljic segment"], risk:["risk","risk tier","risk level"],
+      qScore:["quality score","quality","q score"], dScore:["delivery score","delivery","d score"],
+      cScore:["cost score","cost","c score"], sScore:["service score","service","s score"],
+      compScore:["compliance score","compliance","comp score"], weightedScore:["weighted score","overall score","total score","score"],
+      certExpiry:["cert expiry","certificate expiry","cert expiry date"], singleSource:["single source","single-source"],
+      status:["status","supplier status"], spend:["spend","total spend","annual spend"] } },
+  grn:{ label:"GRN Data (Goods Receipts)", required:["supplier","otif"],
+    fields:{ grn:["grn number","grn","grn id"], po:["po number","po_number","po"], supplier:["supplier","supplier code","vendor"],
+      month:["month","period"], delivStatus:["delivery status","status"], otif:["otif","on time in full","otif flag"] } },
+  invoice:{ label:"Invoice & Payment Data", required:["supplier","value"],
+    fields:{ inv:["invoice number","invoice","inv number","inv#"], po:["po number","po_number","po"], supplier:["supplier","supplier code","vendor"],
+      month:["month","period"], category:["category"], value:["value","amount","invoice value","invoice amount"],
+      matchStatus:["match status","3 way match","match"], exReason:["exception reason","reason","exception"],
+      payStatus:["payment status","status","pay status"], dpo:["dpo","days payable"], onTime:["on time","on-time"] } },
+  ncr:{ label:"Quality & NCR Data", required:["supplier","severity"],
+    fields:{ ncr:["ncr number","ncr","ncr id"], supplier:["supplier code","supplier","vendor code"], sName:["supplier name","vendor name"],
+      month:["month","period"], severity:["severity","ncr severity"], capaStatus:["capa status","capa","status"],
+      chargeback:["chargeback","chargeback value","cost recovery"], repeat:["repeat","repeat ncr","is repeat"], defect:["defect","defect type","description","issue"] } },
+  sop:{ label:"S&OP Plan Data", required:["demand","supply"],
+    fields:{ name:["product name","product","item"], cat:["category","product category"], month:["month","period"],
+      demand:["demand","demand plan","demand units"], supply:["supply","supply plan","supply units"], actual:["actual","actual sales","actual units"],
+      gap:["gap","gap units"], gapVal:["gap value","gap_value"], fcstAcc:["forecast accuracy","fcst accuracy","accuracy"],
+      planAtt:["plan attainment","attainment"], risk:["risk","risk level"] } },
+};
+function normalize(s){ return String(s||"").toLowerCase().replace(/[_\-#.]/g," ").replace(/\s+/g," ").trim(); }
+function scoreSignature(headers, signature){
+  const normHeaders = headers.map(h=>({raw:h,norm:normalize(h)}));
+  const mapping={}; let matched=0;
+  const fieldKeys = Object.keys(signature.fields);
+  for(const fieldKey of fieldKeys){
+    const patterns = signature.fields[fieldKey];
+    let best=null;
+    for(const h of normHeaders){ for(const p of patterns){ if(h.norm===p){best=h.raw;break;} } if(best)break; }
+    if(!best){ for(const h of normHeaders){ for(const p of patterns){ if(h.norm.includes(p)||p.includes(h.norm)){best=h.raw;break;} } if(best)break; } }
+    if(best){ mapping[fieldKey]=best; matched++; }
+  }
+  const requiredMatched = signature.required.filter(r=>mapping[r]).length;
+  const requiredScore = requiredMatched/signature.required.length;
+  const overallScore = matched/fieldKeys.length;
+  const score = requiredScore*0.7 + overallScore*0.3;
+  return {score,mapping,requiredMatched,requiredTotal:signature.required.length};
+}
+function classifySheet(headers){
+  const results = Object.entries(FIELD_SIGNATURES).map(([key,sig])=>{
+    const {score,mapping,requiredMatched,requiredTotal} = scoreSignature(headers,sig);
+    return {key,label:sig.label,score,mapping,requiredMatched,requiredTotal};
+  });
+  results.sort((a,b)=>b.score-a.score);
+  return results;
+}
+function applyMapping(rows, mapping){
+  const numericFields = ["poValue","cycleDays","qScore","dScore","cScore","sScore","compScore","weightedScore","spend","value","dpo","chargeback","demand","supply","actual","gap","gapVal","fcstAcc","planAtt"];
+  const boolFields = ["singleSource","repeat"];
+  return rows.map(row=>{
+    const out={};
+    for(const [field,header] of Object.entries(mapping)){
+      let val = row[header];
+      if(numericFields.includes(field)){
+        let n = parseFloat(String(val).replace(/[₹,%\s]/g,""));
+        val = isNaN(n)?0:n;
+      } else if(boolFields.includes(field)){
+        val = ["yes","true","y","1"].includes(normalize(val));
+      } else if(field==="otif" && typeof val!=="string"){
+        val = val? "Yes":"No";
+      }
+      out[field]=val;
+    }
+    return out;
+  }).filter(r=>Object.values(r).some(v=>v!==undefined && v!==""));
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// UPLOAD MODAL UI
+// ════════════════════════════════════════════════════════════════════════
+const TYPE_NAMES = {po:"PO Master",supplier:"Supplier Master",grn:"GRN Data",invoice:"Invoice & Payment",ncr:"Quality & NCR",sop:"S&OP Plan"};
+function renderUploadTypesGrid(){
+  const grid = document.getElementById("uploadTypesGrid");
+  grid.innerHTML="";
+  Object.entries(TYPE_NAMES).forEach(([key,label])=>{
+    const src = DATA_SOURCE[key];
+    const chip = el("div",{class:"upload-type-chip"});
+    chip.appendChild(el("div",{class:"ut-name"},label));
+    const statusEl = src==="uploaded"
+      ? el("span",{class:"source-badge source-uploaded"},"✓ Your data")
+      : el("span",{class:"source-badge source-sample"},"Sample data");
+    const statusWrap = el("div",{class:"ut-status"}); statusWrap.appendChild(statusEl);
+    chip.appendChild(statusWrap);
+    grid.appendChild(chip);
+  });
+}
+function openUploadModal(){
+  renderUploadTypesGrid();
+  document.getElementById("classifyResult").innerHTML="";
+  document.getElementById("uploadModal").classList.add("open");
+  document.getElementById("dropzone").focus();
+}
+function closeUploadModal(){ document.getElementById("uploadModal").classList.remove("open"); }
+document.getElementById("openUploadBtn").addEventListener("click", openUploadModal);
+document.getElementById("uploadModalClose").addEventListener("click", closeUploadModal);
+document.getElementById("uploadModal").addEventListener("click", e=>{ if(e.target.id==="uploadModal") closeUploadModal(); });
+
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("fileInput");
+dropzone.addEventListener("click", ()=>fileInput.click());
+dropzone.addEventListener("keypress", e=>{ if(e.key==="Enter") fileInput.click(); });
+dropzone.addEventListener("dragover", e=>{ e.preventDefault(); dropzone.classList.add("dragover"); });
+dropzone.addEventListener("dragleave", ()=> dropzone.classList.remove("dragover"));
+dropzone.addEventListener("drop", e=>{
+  e.preventDefault(); dropzone.classList.remove("dragover");
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", e=>{ if(e.target.files.length) handleFile(e.target.files[0]); fileInput.value=""; });
+
+function handleFile(file){
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    let rows=[];
+    try{
+      if(file.name.toLowerCase().endsWith(".csv")){
+        const text = ev.target.result;
+        const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+        const headers = parseCsvLine(lines[0]);
+        rows = lines.slice(1).map(line=>{
+          const cells = parseCsvLine(line);
+          const obj={}; headers.forEach((h,i)=>obj[h]=cells[i]);
+          return obj;
+        });
+      } else {
+        const wb = XLSX.read(ev.target.result, {type:"binary"});
+        const firstSheetName = wb.SheetNames.find(n=>n.toLowerCase()!=="readme") || wb.SheetNames[0];
+        const ws = wb.Sheets[firstSheetName];
+        rows = XLSX.utils.sheet_to_json(ws, {defval:""});
+      }
+    }catch(err){
+      showClassifyError("Could not read this file. Please check it's a valid .xlsx or .csv file.");
+      return;
+    }
+    if(!rows.length){ showClassifyError("No data rows found in this file."); return; }
+    const headers = Object.keys(rows[0]);
+    const results = classifySheet(headers);
+    showClassifyResult(file.name, headers, rows, results);
+  };
+  if(file.name.toLowerCase().endsWith(".csv")) reader.readAsText(file);
+  else reader.readAsBinaryString(file);
+}
+function parseCsvLine(line){
+  // simple CSV parser handling quoted fields
+  const result=[]; let cur=""; let inQuotes=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){ inQuotes=!inQuotes; }
+    else if(c===','&&!inQuotes){ result.push(cur.trim()); cur=""; }
+    else cur+=c;
+  }
+  result.push(cur.trim());
+  return result;
+}
+function showClassifyError(msg){
+  const box = document.getElementById("classifyResult");
+  box.innerHTML="";
+  const div = el("div",{class:"classify-result",style:"border-color:var(--coral);"});
+  div.appendChild(el("div",{style:"color:var(--coral);font-weight:700;font-size:12px;"},"⚠ "+msg));
+  box.appendChild(div);
+}
+function showClassifyResult(filename, headers, rows, results){
+  const best = results[0];
+  const box = document.getElementById("classifyResult");
+  box.innerHTML="";
+  const div = el("div",{class:"classify-result"});
+  const confRow = el("div",{class:"classify-confidence"});
+  const confPct = Math.round(best.score*100);
+  const confColor = confPct>=70?"var(--green)":confPct>=40?"var(--amber)":"var(--coral)";
+  confRow.appendChild(el("div",{style:`font-size:13px;font-weight:800;color:var(--text);`},`Detected: ${best.label}`));
+  confRow.appendChild(el("span",{class:"badge",style:`background:color-mix(in srgb, ${confColor} 18%, transparent);color:${confColor};`},`${confPct}% confidence`));
+  div.appendChild(confRow);
+  div.appendChild(el("div",{style:"color:var(--sub);font-size:11px;margin-bottom:8px;"},`File: ${filename} · ${rows.length} rows · ${headers.length} columns detected`));
+
+  const mapTable = el("table",{class:"mapping-table"});
+  Object.entries(FIELD_SIGNATURES[best.key].fields).forEach(([field])=>{
+    const mapped = best.mapping[field];
+    const tr = el("tr");
+    tr.appendChild(el("td",{style:"color:var(--sub);"},field));
+    tr.appendChild(el("td",{class:mapped?"field-ok":"field-missing"}, mapped? `✓ "${mapped}"` : "✕ not found"));
+    mapTable.appendChild(tr);
+  });
+  div.appendChild(mapTable);
+
+  if(best.requiredMatched < best.requiredTotal){
+    div.appendChild(el("div",{style:"color:var(--amber);font-size:11px;margin-top:10px;padding:8px 10px;background:rgba(245,158,11,.1);border-radius:6px;"},
+      `⚠ Missing ${best.requiredTotal-best.requiredMatched} required field(s) for this data type. You can still import — missing fields will be blank.`));
+  }
+
+  // Alternative matches
+  if(results[1] && results[1].score>0.15){
+    const altRow = el("div",{style:"color:var(--mut);font-size:10px;margin-top:8px;"},
+      `Other possible match: ${results[1].label} (${Math.round(results[1].score*100)}% confidence)`);
+    div.appendChild(altRow);
+  }
+
+  const actions = el("div",{class:"confirm-actions"});
+  const confirmBtn = el("button",{class:"btn-confirm"}, `✓ Import as ${TYPE_NAMES[best.key]}`);
+  confirmBtn.addEventListener("click",()=>{
+    const mapped = applyMapping(rows, best.mapping);
+    DATA[best.key] = mapped;
+    DATA_SOURCE[best.key] = "uploaded";
+    logUpload(filename, best.label, mapped.length);
+    renderUploadTypesGrid();
+    populateFilterOptions();
+    render();
+    box.innerHTML="";
+    box.appendChild(el("div",{style:"color:var(--green);font-size:12px;font-weight:700;padding:10px;background:rgba(34,197,94,.1);border-radius:8px;"},
+      `✓ Successfully imported ${mapped.length} rows as ${TYPE_NAMES[best.key]}. Dashboard updated.`));
+  });
+  const rejectBtn = el("button",{class:"btn-reject"},"✕ Not this type — cancel");
+  rejectBtn.addEventListener("click",()=>{ box.innerHTML=""; });
+  actions.appendChild(confirmBtn); actions.appendChild(rejectBtn);
+  div.appendChild(actions);
+  box.appendChild(div);
+}
+function logUpload(filename, typeLabel, rowCount){
+  const log = document.getElementById("uploadLog");
+  const row = el("div",{class:"upload-log-row"});
+  row.appendChild(el("span",{style:"color:var(--text);"},`${filename} → ${typeLabel}`));
+  row.appendChild(el("span",{style:"color:var(--green);"},`${rowCount} rows ✓`));
+  log.insertBefore(row, log.firstChild);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════
+populateFilterOptions();
+render();
+
+// ════════════════════════════════════════════════════════════════════════
+// ⚡ WHAT-IF SIMULATION ENGINE
+// ════════════════════════════════════════════════════════════════════════
+
+// SIM state — overrides applied on top of real metrics when sim mode is on
+// Define all metrics with their RAG thresholds, used for health score
+const SIM_METRICS = [
+  // id, label, simKey, target desc, greenFn(val), amberFn(val)
+  {id:"cycle",    label:"PR→PO Cycle",       key:"avgCycle",      unit:"d",    dir:"down", green:3,  amber:6,   fmt:v=>v.toFixed(1)+"d"},
+  {id:"match",    label:"3-Way Match",        key:"matchRate",     unit:"%",    dir:"up",   green:85, amber:75,  fmt:v=>v.toFixed(0)+"%"},
+  {id:"exc",      label:"Exceptions",         key:"exceptions",    unit:"",     dir:"down", green:2,  amber:5,   fmt:v=>v.toFixed(0)},
+  {id:"openpo",   label:"Open POs",           key:"openPOs",       unit:"",     dir:"down", green:6,  amber:10,  fmt:v=>v.toFixed(0)},
+  {id:"otif",     label:"OTIF Rate",          key:"avgOtif",       unit:"%",    dir:"up",   green:95, amber:85,  fmt:v=>v.toFixed(1)+"%"},
+  {id:"score",    label:"Supplier Score",     key:"avgScore",      unit:"/100", dir:"up",   green:85, amber:75,  fmt:v=>v.toFixed(1)},
+  {id:"ncr",      label:"Open NCRs",          key:"openNCRs",      unit:"",     dir:"down", green:2,  amber:4,   fmt:v=>v.toFixed(0)},
+  {id:"cb",       label:"Chargebacks",        key:"chargeback",    unit:"₹",    dir:"down", green:50000, amber:150000, fmt:v=>"₹"+fmtK(v)},
+  {id:"sopgap",   label:"S&OP Gap Units",     key:"sopGapU",       unit:"u",    dir:"down", green:500, amber:2000, fmt:v=>v.toFixed(0)+"u"},
+  {id:"fcst",     label:"Forecast Accuracy",  key:"sopFcstAcc",    unit:"%",    dir:"up",   green:90, amber:80,  fmt:v=>v.toFixed(1)+"%"},
+  {id:"pa",       label:"Plan Attainment",    key:"sopPlanAtt",    unit:"%",    dir:"up",   green:95, amber:88,  fmt:v=>v.toFixed(1)+"%"},
+  {id:"dpo",      label:"Days Payable Out",   key:"dpo",           unit:"d",    dir:"range",green:[45,60], amber:[35,70], fmt:v=>v.toFixed(0)+"d"},
+  {id:"sum",      label:"Spend Under Mgmt",   key:"spendUnderMgmt",unit:"%",   dir:"up",   green:85, amber:75,  fmt:v=>v.toFixed(0)+"%"},
+  {id:"mav",      label:"Maverick Spend",     key:"maverickPct",   unit:"%",    dir:"down", green:3,  amber:7,   fmt:v=>v.toFixed(1)+"%"},
+  {id:"sav",      label:"Savings %",          key:"savingsPct",    unit:"%",    dir:"up",   green:6,  amber:4,   fmt:v=>v.toFixed(1)+"%"},
+];
+
+function fmtK(v){ return v>=1e5 ? (v/1e5).toFixed(1)+"L" : v>=1000 ? (v/1000).toFixed(0)+"K" : v.toFixed(0); }
+
+function simRag(metric, val){
+  if(metric.dir==="up")   return val>=metric.green?"green": val>=metric.amber?"amber":"red";
+  if(metric.dir==="down") return val<=metric.green?"green": val<=metric.amber?"amber":"red";
+  if(metric.dir==="range"){
+    const [g0,g1]=metric.green, [a0,a1]=metric.amber;
+    return (val>=g0&&val<=g1)?"green":(val>=a0&&val<=a1)?"amber":"red";
+  }
+  return "red";
+}
+
+function getSimValues(m){
+  const base = {
+    openNCRs:    (m.openNCRs)    || 5,
+    overdueNCRs: (m.overdueNCRs) || 1,
+    chargeback:  (m.totalCB)     || 254400,
+    exceptions:  (Array.isArray(m.excepts) ? m.excepts.length : 0) || 6,
+    blocked:     (Array.isArray(m.blocked) ? m.blocked.length : 0) || 3,
+    openPOs:     (Array.isArray(m.openPOs) ? m.openPOs.length : 0) || 11,
+    sopGapV:     (m.sopGapV)     || 18640000,
+  };
+  return {
+    avgCycle:      SIM.avgCycle      ?? m.avgCycle,
+    matchRate:     SIM.matchRate     ?? m.matchRate*100,
+    exceptions:    SIM.exceptions    ?? base.exceptions,
+    openPOs:       SIM.openPOs       ?? base.openPOs,
+    blocked:       SIM.blocked       ?? base.blocked,
+    avgOtif:       SIM.avgOtif       ?? m.otifRate*100,
+    avgScore:      SIM.avgScore      ?? m.avgScore,
+    openNCRs:      SIM.openNCRs      ?? base.openNCRs,
+    overdueNCRs:   SIM.overdueNCRs   ?? base.overdueNCRs,
+    chargeback:    SIM.chargeback    ?? base.chargeback,
+    sopGapU:       SIM.sopGapU       ?? m.sopGapU,
+    sopGapV:       SIM.sopGapV       ?? base.sopGapV,
+    sopFcstAcc:    SIM.sopFcstAcc    ?? m.avgFcst*100,
+    sopPlanAtt:    SIM.sopPlanAtt    ?? m.avgPA*100,
+    dpo:           SIM.dpo           ?? m.avgDPO,
+    spendUnderMgmt:SIM.spendUnderMgmt?? 87.3,
+    maverickPct:   SIM.maverickPct   ?? ((m.maverick/m.totSpend*100)||6.8),
+    savingsPct:    SIM.savingsPct    ?? ((m.savings/m.totSpend*100)||6.4),
+  };
+}
+
+function calcHealthScore(sv){
+  let green=0, total=SIM_METRICS.length;
+  SIM_METRICS.forEach(metric=>{
+    if(simRag(metric, sv[metric.key])==="green") green++;
+  });
+  return {green, total, pct: Math.round(green/total*100)};
+}
+
+function updateSimHealth(sv){
+  const {green,total,pct} = calcHealthScore(sv);
+  document.getElementById("simScoreText").textContent = `${green} / ${total}`;
+  document.getElementById("simScoreNum").textContent   = pct+"%";
+  const bar = document.getElementById("simHealthBar");
+  bar.style.width = pct+"%";
+  bar.style.background = pct>=95?"var(--green)": pct>=70?"var(--amber)":"var(--coral)";
+  document.getElementById("simScoreSub").textContent = pct>=95?"✓ Target reached — everything green!": `Need ${Math.ceil((total*0.95)-green)} more metric(s) green`;
+  // Also update all sim-row RAG dots in panel
+  SIM_METRICS.forEach(metric=>{
+    const dot = document.getElementById("simDot_"+metric.id);
+    if(dot) dot.style.background = RAG[simRag(metric, sv[metric.key])];
+  });
+}
+
+// Registry rebuilt each time buildSimDrawer runs — keyed by metric.key on data attribute
+const SLIDER_TRACK_FNS = {};
+
+function syncAllSliderUIs(){
+  const rawM = getMetrics(getFiltered());
+  const sv   = getSimValues(rawM);
+  SIM_METRICS.forEach(metric => {
+    const slider  = document.querySelector('.sim-slider[data-key="'+metric.key+'"]');
+    const trackFn = SLIDER_TRACK_FNS[metric.key];
+    if(slider && trackFn){
+      const val = sv[metric.key];
+      if(!isNaN(val) && Math.abs(parseFloat(slider.value) - val) > 0.05){
+        slider.value = val;
+        trackFn(val);
+      }
+    }
+  });
+}
+function buildSimDrawer(m){
+  const body = document.getElementById("simBody");
+  body.innerHTML = "";
+
+  // Helper: make a slider row
+  function sliderRow(metric, curVal, min, max, step){
+    const div = document.createElement("div");
+    div.className = "sim-row";
+    div.setAttribute("data-row-key", metric.key);
+    const labelRow = document.createElement("div");
+    labelRow.className = "sim-row-label";
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "sim-row-name";
+    nameSpan.textContent = metric.label;
+    const valSpan = document.createElement("span");
+    valSpan.className = "sim-row-val";
+    const dot = document.createElement("span");
+    dot.className = "sim-rag";
+    dot.id = "simDot_"+metric.id;
+    dot.style.background = RAG[simRag(metric,curVal)];
+    valSpan.appendChild(document.createTextNode(metric.fmt(curVal)));
+    valSpan.appendChild(dot);
+    labelRow.appendChild(nameSpan);
+    labelRow.appendChild(valSpan);
+    div.appendChild(labelRow);
+    const slider = document.createElement("input");
+    slider.type="range"; slider.className="sim-slider";
+    slider.setAttribute("data-key", metric.key);
+    slider.min=min; slider.max=max; slider.step=step||1; slider.value=curVal;
+    // Colour track gradient
+    function updateTrack(v){
+      const pct = (v-min)/(max-min)*100;
+      const r = simRag(metric, parseFloat(v));
+      const col = RAG[r];
+      slider.style.background = `linear-gradient(to right, ${col} 0%, ${col} ${pct}%, var(--surfC) ${pct}%, var(--surfC) 100%)`;
+      valSpan.childNodes[0].textContent = metric.fmt(parseFloat(v));
+      dot.style.background = col;
+    }
+    updateTrack(curVal);
+    // Store track function keyed by metric for cascade sync
+    SLIDER_TRACK_FNS[metric.key] = updateTrack;
+    slider.addEventListener("input", e=>{
+      const v = parseFloat(e.target.value);
+      SIM[metric.key] = v;
+      updateTrack(v);
+      // Fire cascade — adjusts dependent SIM keys
+      const sv = getSimValues(getMetrics(getFiltered()));
+      applyCascades(sv, metric.key);
+      // Sync all other slider UIs to reflect cascaded values
+      syncAllSliderUIs();
+      updateSimHealth(getSimValues(getMetrics(getFiltered())));
+      render();
+    });
+    div.appendChild(slider);
+    const rangeLabels = document.createElement("div");
+    rangeLabels.className = "sim-range-labels";
+    const targetLabel = metric.dir==="range"
+      ? "target: "+metric.green[0]+"\u2013"+metric.green[1]+metric.unit
+      : metric.dir==="up"
+        ? "target \u2265"+metric.green+metric.unit
+        : "target \u2264"+metric.green+metric.unit;
+    rangeLabels.innerHTML = "<span>"+metric.fmt(min)+"</span>"
+      +"<span style=\"color:var(--green);font-size:9px;\">"+targetLabel+"</span>"
+      +"<span>"+metric.fmt(max)+"</span>";
+    div.appendChild(rangeLabels);
+    return div;
+  }
+
+  // Helper: stepper (for card-level navigation or integer metrics)
+  function stepperRow(label, val, min, max, step, unit, onchange){
+    const div = document.createElement("div");
+    div.className = "sim-row";
+    const lbl = document.createElement("div");
+    lbl.className = "sim-row-name"; lbl.style.marginBottom="4px";
+    lbl.textContent = label;
+    div.appendChild(lbl);
+    const row = document.createElement("div");
+    row.className = "sim-stepper";
+    const minus = document.createElement("button");
+    minus.className="sim-step-btn"; minus.textContent="−";
+    const valDiv = document.createElement("div");
+    valDiv.className = "sim-step-val";
+    valDiv.textContent = val + unit;
+    const plus = document.createElement("button");
+    plus.className="sim-step-btn"; plus.textContent="+";
+    let cur = val;
+    function update(){
+      valDiv.textContent = cur + unit;
+      onchange(cur);
+    }
+    minus.addEventListener("click",()=>{ if(cur>min){cur=Math.max(min,cur-step); update();} });
+    plus.addEventListener("click", ()=>{ if(cur<max){cur=Math.min(max,cur+step); update();} });
+    row.appendChild(minus); row.appendChild(valDiv); row.appendChild(plus);
+    div.appendChild(row);
+    return div;
+  }
+
+  const sv = getSimValues(m);
+
+  // ── P2P Section ──
+  const p2pSec = document.createElement("div");
+  p2pSec.className = "sim-section";
+  const p2pHd = document.createElement("div");
+  p2pHd.className = "sim-section-hd"; p2pHd.textContent = "⟳  P2P Operations";
+  p2pSec.appendChild(p2pHd);
+  const m0 = SIM_METRICS.find(x=>x.id==="cycle");
+  p2pSec.appendChild(sliderRow(m0, sv.avgCycle, 1, 10, 0.5));
+  const m1 = SIM_METRICS.find(x=>x.id==="match");
+  p2pSec.appendChild(sliderRow(m1, sv.matchRate, 30, 100, 1));
+  const m2 = SIM_METRICS.find(x=>x.id==="exc");
+  p2pSec.appendChild(sliderRow(m2, sv.exceptions, 0, 20, 1));
+  const m3 = SIM_METRICS.find(x=>x.id==="openpo");
+  p2pSec.appendChild(sliderRow(m3, sv.openPOs, 0, 25, 1));
+  // Chart stepper: month window
+  p2pSec.appendChild(stepperRow("Chart View", SIM.trendMonth===0?"Current":"Projected", 0, 1, 1, "",
+    v=>{ SIM.trendMonth=v; render(); }));
+  body.appendChild(p2pSec);
+
+  // ── Supplier Section ──
+  const supSec = document.createElement("div");
+  supSec.className = "sim-section";
+  const supHd = document.createElement("div");
+  supHd.className = "sim-section-hd"; supHd.textContent = "⬡  Supplier Performance";
+  supSec.appendChild(supHd);
+  const m4 = SIM_METRICS.find(x=>x.id==="otif");
+  supSec.appendChild(sliderRow(m4, sv.avgOtif, 30, 100, 1));
+  const m5 = SIM_METRICS.find(x=>x.id==="score");
+  supSec.appendChild(sliderRow(m5, sv.avgScore, 50, 100, 0.5));
+  const m6 = SIM_METRICS.find(x=>x.id==="ncr");
+  supSec.appendChild(sliderRow(m6, sv.openNCRs, 0, 20, 1));
+  const m7 = SIM_METRICS.find(x=>x.id==="cb");
+  supSec.appendChild(sliderRow(m7, sv.chargeback, 0, 500000, 5000));
+  // Stepper: toggle which supplier risk tier to highlight
+  supSec.appendChild(stepperRow("Risk Focus", ["All","High","Critical","Medium"][SIM.sopProduct%4], 0, 3, 1, "",
+    v=>{ SIM.sopProduct=v; render(); }));
+  body.appendChild(supSec);
+
+  // ── S&OP Section ──
+  const sopSec = document.createElement("div");
+  sopSec.className = "sim-section";
+  const sopHd = document.createElement("div");
+  sopHd.className = "sim-section-hd"; sopHd.textContent = "⟴  S&OP Planning";
+  sopSec.appendChild(sopHd);
+  const m8 = SIM_METRICS.find(x=>x.id==="sopgap");
+  sopSec.appendChild(sliderRow(m8, sv.sopGapU, 0, 10000, 100));
+  const m9 = SIM_METRICS.find(x=>x.id==="fcst");
+  sopSec.appendChild(sliderRow(m9, sv.sopFcstAcc, 50, 100, 0.5));
+  const m10 = SIM_METRICS.find(x=>x.id==="pa");
+  sopSec.appendChild(sliderRow(m10, sv.sopPlanAtt, 50, 100, 0.5));
+  // Stepper: scenario selector
+  const scenarioLabels = SCENARIOS.map(s=>s.name);
+  let curScen = 0;
+  sopSec.appendChild(stepperRow("Scenario", scenarioLabels[0], 0, SCENARIOS.length-1, 1, "",
+    v=>{ curScen=v; applyScenario(SCENARIOS[v], m); }));
+  body.appendChild(sopSec);
+
+  // ── Finance Section ──
+  const finSec = document.createElement("div");
+  finSec.className = "sim-section";
+  const finHd = document.createElement("div");
+  finHd.className = "sim-section-hd"; finHd.textContent = "₹  Finance & Spend";
+  finSec.appendChild(finHd);
+  const m11 = SIM_METRICS.find(x=>x.id==="dpo");
+  finSec.appendChild(sliderRow(m11, sv.dpo, 10, 90, 1));
+  const m12 = SIM_METRICS.find(x=>x.id==="sum");
+  finSec.appendChild(sliderRow(m12, sv.spendUnderMgmt, 50, 100, 1));
+  const m13 = SIM_METRICS.find(x=>x.id==="mav");
+  finSec.appendChild(sliderRow(m13, sv.maverickPct, 0, 30, 0.5));
+  const m14 = SIM_METRICS.find(x=>x.id==="sav");
+  finSec.appendChild(sliderRow(m14, sv.savingsPct, 0, 15, 0.5));
+  // Stepper: payment terms scenario
+  finSec.appendChild(stepperRow("Payment Terms", "Net30", 0, 3, 1, "",
+    v=>{ const terms=["Net30","Net45","Net60","Net90"]; SIM.dpo=[30,45,60,90][v]; render(); }));
+  body.appendChild(finSec);
+
+  // ── Reset button ──
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "sim-reset-btn";
+  resetBtn.textContent = "↺ Reset All to Actuals";
+  resetBtn.addEventListener("click", resetSim);
+  body.appendChild(resetBtn);
+
+  // Initial health update
+  updateSimHealth(sv);
+}
+
+function applyScenario(scen, m){
+  // Reset relevant SIM keys first so cascades start from BASE
+  if(scen.id==="A"){ // Do Nothing — reset all to actuals
+    Object.keys(SIM).forEach(k => { if(k!=="trendMonth"&&k!=="sopProduct") SIM[k]=null; });
+  } else if(scen.id==="B"){ // Air Freight — fast but expensive: cycle ↓, gap ↓, savings ↓
+    SIM.avgCycle   = parseFloat((BASE.avgCycle * 0.55).toFixed(1));
+    SIM.sopGapU    = Math.round(BASE.sopGapU  * 0.35);
+    SIM.savingsPct = parseFloat((BASE.savingsPct * 0.82).toFixed(1));
+    const sv = getSimValues(m);
+    applyCascades(sv, "avgCycle");
+    applyCascades(getSimValues(m), "sopGapU");
+  } else if(scen.id==="C"){ // Alt Supplier Qualification: OTIF ↑, NCRs ↓, gap ↓
+    SIM.avgOtif  = Math.min(100, parseFloat((BASE.avgOtif  * 1.35).toFixed(1)));
+    SIM.openNCRs = Math.max(0, Math.round(BASE.openNCRs * 0.45));
+    SIM.sopGapU  = Math.round(BASE.sopGapU * 0.22);
+    const sv = getSimValues(m);
+    applyCascades(sv, "avgOtif");
+    applyCascades(getSimValues(m), "openNCRs");
+    applyCascades(getSimValues(m), "sopGapU");
+  } else if(scen.id==="D"){ // Overtime Production: gap ↓, cost ↑ (savings ↓)
+    SIM.sopGapU    = Math.round(BASE.sopGapU  * 0.48);
+    SIM.sopPlanAtt = Math.min(100, parseFloat((BASE.sopPlanAtt * 1.006).toFixed(1)));
+    SIM.savingsPct = parseFloat((BASE.savingsPct * 0.76).toFixed(1));
+    const sv = getSimValues(m);
+    applyCascades(sv, "sopGapU");
+    applyCascades(getSimValues(m), "sopPlanAtt");
+  }
+  syncAllSliderUIs();
+  updateSimHealth(getSimValues(getMetrics(getFiltered())));
+  render();
+}
+
+function resetSim(){
+  Object.keys(SIM).forEach(k => { SIM[k] = null; });
+  SIM.trendMonth = 0;
+  SIM.sopProduct = 0;
+  // Clear track function cache so stale closures don't linger
+  Object.keys(SLIDER_TRACK_FNS).forEach(k => { delete SLIDER_TRACK_FNS[k]; });
+  const d = getFiltered();
+  const m = getMetrics(d);
+  render();
+  if(SIM_MODE) buildSimDrawer(m);
+}
+
+// ── Cascade logic: changing one sim lever auto-adjusts dependent metrics ──
+// ════════════════════════════════════════════════════════════════════════
+// BIDIRECTIONAL CASCADE ENGINE
+// Every relationship is expressed in both directions.
+// Base (actual) values used as anchors so cascades are proportional.
+// ════════════════════════════════════════════════════════════════════════
+const BASE = {
+  avgOtif:54.9, avgScore:85.2, openNCRs:5, chargeback:254400, overdueNCRs:1,
+  matchRate:64.7, exceptions:6, blocked:3, avgDPO:31.4, avgCycle:4.6, openPOs:11,
+  sopGapU:7500, sopGapV:18640000, sopFcstAcc:95.3, sopPlanAtt:99.2,
+  spendUnderMgmt:87.3, maverickPct:6.8, savingsPct:6.4
+};
+
+function applyCascades(sv, changedKey){
+  const scale = (val, min, max) => {
+    const n = parseFloat(val);
+    return isNaN(n) ? min : Math.min(max, Math.max(min, n));
+  };
+  const pct = (val, min, max) => scale(parseFloat(val.toFixed(1)), min, max);
+  const cnt = (val, min, max) => scale(Math.round(val), min, max);
+  // Always use sv[key] which already falls back to BASE via getSimValues
+  const otif  = sv.avgOtif;
+  const score = sv.avgScore;
+  const ncrs  = sv.openNCRs;
+  const cb    = sv.chargeback;
+  const match = sv.matchRate;
+  const exc   = sv.exceptions;
+  const dpo   = sv.dpo;
+  const cycle = sv.avgCycle;
+  const pos   = sv.openPOs;
+  const gap   = sv.sopGapU;
+  const fcst  = sv.sopFcstAcc;
+  const pa    = sv.sopPlanAtt;
+  const sum   = sv.spendUnderMgmt;
+  const mav   = sv.maverickPct;
+  const sav   = sv.savingsPct;
+
+  if(changedKey==="avgOtif"){
+    const r = otif / BASE.avgOtif;
+    SIM.openNCRs    = cnt(BASE.openNCRs / Math.max(0.5, r*0.85+0.15), 0, 20);
+    SIM.overdueNCRs = cnt(SIM.openNCRs * 0.2, 0, 10);
+    SIM.avgScore    = pct(BASE.avgScore + (otif - BASE.avgOtif)*0.35*0.3, 50, 100);
+    SIM.chargeback  = cnt(BASE.chargeback * (SIM.openNCRs / BASE.openNCRs), 0, 1000000);
+    SIM.sopGapU     = cnt(BASE.sopGapU * Math.max(0.2, 1-(otif-BASE.avgOtif)*0.015), 0, 15000);
+    SIM.sopGapV     = cnt(SIM.sopGapU * 2485, 0, 50000000);
+  }
+  if(changedKey==="avgScore"){
+    const d = score - BASE.avgScore;
+    SIM.openNCRs    = cnt(BASE.openNCRs * Math.max(0.1, 1-d*0.05), 0, 20);
+    SIM.overdueNCRs = cnt(SIM.openNCRs * 0.2, 0, 10);
+    SIM.chargeback  = cnt(BASE.chargeback * Math.max(0.05, 1-d*0.04), 0, 1000000);
+    SIM.avgOtif     = pct(BASE.avgOtif + d*0.6, 0, 100);
+  }
+  if(changedKey==="openNCRs"){
+    SIM.chargeback  = cnt(BASE.chargeback * (ncrs/BASE.openNCRs), 0, 1000000);
+    SIM.overdueNCRs = cnt(ncrs*0.2, 0, 10);
+    SIM.avgScore    = pct(BASE.avgScore - (ncrs-BASE.openNCRs)*1.2, 50, 100);
+    SIM.avgOtif     = pct(BASE.avgOtif - (ncrs-BASE.openNCRs)*2.5, 0, 100);
+  }
+  if(changedKey==="chargeback"){
+    const r = cb / BASE.chargeback;
+    SIM.openNCRs    = cnt(BASE.openNCRs * r, 0, 20);
+    SIM.overdueNCRs = cnt(SIM.openNCRs * 0.2, 0, 10);
+    SIM.avgScore    = pct(BASE.avgScore * Math.max(0.7, 1-(r-1)*0.15), 50, 100);
+    SIM.savingsPct  = pct(BASE.savingsPct * Math.max(0.3, 1-(r-1)*0.2), 0, 15);
+  }
+  if(changedKey==="matchRate"){
+    SIM.exceptions  = cnt(BASE.exceptions*(1-(match-BASE.matchRate)/(100-BASE.matchRate)), 0, 17);
+    SIM.blocked     = cnt(SIM.exceptions*0.5, 0, 10);
+    SIM.dpo         = pct(BASE.avgDPO + (match-BASE.matchRate)*0.18, 10, 90);
+  }
+  if(changedKey==="exceptions"){
+    SIM.matchRate   = pct(100-(exc/BASE.exceptions)*(100-BASE.matchRate), 0, 100);
+    SIM.blocked     = cnt(exc*0.5, 0, 10);
+    SIM.dpo         = pct(BASE.avgDPO - (exc-BASE.exceptions)*1.2, 10, 90);
+  }
+  if(changedKey==="dpo"){
+    const d = dpo - BASE.avgDPO;
+    SIM.matchRate   = pct(BASE.matchRate + d*0.5, 0, 100);
+    SIM.exceptions  = cnt(BASE.exceptions*Math.max(0.2,1-d*0.02), 0, 17);
+    if(dpo>=45&&dpo<=60) SIM.savingsPct = pct(BASE.savingsPct*1.08, 0, 15);
+    SIM.avgScore    = dpo<30
+      ? pct(BASE.avgScore-(30-dpo)*0.3, 50, 100)
+      : pct(BASE.avgScore+Math.min(dpo-30,20)*0.1, 50, 100);
+  }
+  if(changedKey==="avgCycle"){
+    SIM.openPOs = cnt(BASE.openPOs*(cycle/BASE.avgCycle), 0, 25);
+    SIM.sopGapU = cnt(BASE.sopGapU*Math.max(0.2,1+(cycle-BASE.avgCycle)*0.08), 0, 15000);
+    SIM.sopGapV = cnt(SIM.sopGapU*2485, 0, 50000000);
+  }
+  if(changedKey==="openPOs"){
+    SIM.avgCycle = pct(BASE.avgCycle*(pos/BASE.openPOs), 1, 10);
+    SIM.sopGapU  = cnt(BASE.sopGapU*(pos/BASE.openPOs)*0.7, 0, 15000);
+    SIM.sopGapV  = cnt(SIM.sopGapU*2485, 0, 50000000);
+  }
+  if(changedKey==="sopGapU"){
+    const r = gap/BASE.sopGapU;
+    SIM.sopFcstAcc = pct(BASE.sopFcstAcc+(1-r)*4.5, 50, 100);
+    SIM.sopPlanAtt = pct(BASE.sopPlanAtt+(1-r)*0.8, 50, 100);
+    SIM.avgOtif    = pct(BASE.avgOtif*(1-(r-1)*0.1), 0, 100);
+    SIM.sopGapV    = cnt(gap*2485, 0, 50000000);
+  }
+  if(changedKey==="sopFcstAcc"){
+    const d = fcst - BASE.sopFcstAcc;
+    SIM.sopGapU = cnt(BASE.sopGapU*Math.max(0.1,1-d*0.08), 0, 15000);
+    SIM.sopGapV = cnt(SIM.sopGapU*2485, 0, 50000000);
+    SIM.sopPlanAtt = pct(BASE.sopPlanAtt+d*0.1, 50, 100);
+  }
+  if(changedKey==="sopPlanAtt"){
+    const d = pa - BASE.sopPlanAtt;
+    SIM.sopGapU = cnt(BASE.sopGapU*Math.max(0.1,1-d*0.15), 0, 15000);
+    SIM.sopGapV = cnt(SIM.sopGapU*2485, 0, 50000000);
+    SIM.sopFcstAcc = pct(BASE.sopFcstAcc+d*0.4, 50, 100);
+  }
+  if(changedKey==="spendUnderMgmt"){
+    SIM.maverickPct = pct((100-sum)*0.58, 0, 30);
+    SIM.savingsPct  = pct(BASE.savingsPct*(sum/BASE.spendUnderMgmt)*0.9+BASE.savingsPct*0.1, 0, 15);
+  }
+  if(changedKey==="maverickPct"){
+    SIM.spendUnderMgmt = pct(100-mav/0.58, 50, 100);
+    SIM.savingsPct     = pct(BASE.savingsPct*(1-(mav-BASE.maverickPct)*0.06), 0, 15);
+    SIM.avgScore       = pct(BASE.avgScore-(mav-BASE.maverickPct)*0.4, 50, 100);
+  }
+  if(changedKey==="savingsPct"){
+    SIM.maverickPct    = pct(BASE.maverickPct*(BASE.savingsPct/Math.max(0.1,sav))*0.7, 0, 30);
+    SIM.spendUnderMgmt = pct(100-SIM.maverickPct/0.58, 50, 100);
+  }
+}
+
+// ── Clean metric override — directly produces the full metrics object ──
+function getSimAugmentedMetrics(d, rawM){
+  const m = rawM || getMetrics(d);
+  if(!SIM_MODE) return m;
+  const sv = getSimValues(m);
+
+  // Simulated invoice arrays
+  const totalInvs = d.invs.length;
+  const matchCount = Math.round(totalInvs * sv.matchRate / 100);
+  const blockedCount = Math.round(sv.blocked);
+  const simInvs = d.invs.map((inv, i) => ({
+    ...inv,
+    matchStatus: i < matchCount ? "Matched" : "Exception",
+    dpo: inv.payStatus === "Paid" ? sv.dpo : inv.dpo,
+    payStatus: i < matchCount
+      ? inv.payStatus
+      : i < matchCount + blockedCount ? "Blocked" : inv.payStatus,
+  }));
+  const simExcepts = simInvs.filter(i => i.matchStatus === "Exception");
+  const simBlocked = simInvs.filter(i => ["Blocked","Overdue"].includes(i.payStatus));
+  const simPaid    = simInvs.filter(i => i.payStatus === "Paid");
+
+  // Simulated open POs
+  const simOpenPOs = d.pos
+    .filter(p => ["Open","Partial"].includes(p.status))
+    .slice(0, Math.max(0, Math.round(sv.openPOs)));
+
+  // Savings / maverick
+  const simSavings  = m.totSpend * sv.savingsPct / 100;
+  const simAvoid    = m.totSpend * (sv.savingsPct * 0.58) / 100;
+  const simMaverick = m.totSpend * sv.maverickPct / 100;
+
+  // Live chart trend — update last data point with simulated values so charts animate
+  const simTrend = {
+    spend:     [...MO_TREND.spend],
+    otif:      MO_TREND.otif.map((v,i,a)  => i===a.length-1 ? Math.round(sv.avgOtif) : v),
+    matchRate: MO_TREND.matchRate.map((v,i,a) => i===a.length-1 ? Math.round(sv.matchRate) : v),
+    cycle:     MO_TREND.cycle.map((v,i,a) => i===a.length-1 ? parseFloat(sv.avgCycle.toFixed(1)) : v),
+    ncr:       MO_TREND.ncr.map((v,i,a)   => i===a.length-1 ? Math.round(sv.openNCRs) : v),
+    dpo:       MO_TREND.dpo.map((v,i,a)   => i===a.length-1 ? Math.round(sv.dpo) : v),
+  };
+
+  return Object.assign({}, m, {
+    avgCycle:    sv.avgCycle,
+    openPOs:     simOpenPOs,
+    matchRate:   sv.matchRate / 100,
+    excepts:     simExcepts,
+    blocked:     simBlocked,
+    paid:        simPaid,
+    avgDPO:      sv.dpo,
+    otifRate:    sv.avgOtif / 100,
+    avgScore:    sv.avgScore,
+    openNCRs:    Math.round(sv.openNCRs),
+    overdueNCRs: Math.round(sv.overdueNCRs),
+    totalCB:     sv.chargeback,
+    sopGapU:     sv.sopGapU,
+    sopGapV:     sv.sopGapV,
+    avgFcst:     sv.sopFcstAcc / 100,
+    avgPA:       sv.sopPlanAtt / 100,
+    savings:     simSavings,
+    avoid:       simAvoid,
+    maverick:    simMaverick,
+    _simSpendUnderMgmt: sv.spendUnderMgmt,
+    _simMaverickPct:    sv.maverickPct,
+    _simTrend:          simTrend,
+    _simMode:           true,
+  });
+}
+
+// ── Drawer open/close ──
+function openSimDrawer(){
+  if(SIM_MODE) return; // already open
+  SIM_MODE = true;
+  const drawer = document.getElementById("simDrawer");
+  const btn    = document.getElementById("simToggleBtn");
+  const banner = document.getElementById("simBanner");
+  drawer.classList.add("open");
+  banner.classList.add("show");
+  btn.classList.add("active");
+  btn.textContent = "✕ Exit Sim";
+  document.body.classList.add("sim-mode");
+  const d=getFiltered(), m=getMetrics(d);
+  buildSimDrawer(m);
+  render();
+}
+
+// Quick-jump: open the sim drawer (if needed), scroll to the metric's slider row, and pulse-highlight it
+function jumpToSimSlider(simKey){
+  openSimDrawer();
+  // Wait a tick for the drawer/DOM to settle before scrolling
+  setTimeout(()=>{
+    const row = document.querySelector('.sim-row[data-row-key="'+simKey+'"]');
+    if(row){
+      if(typeof row.scrollIntoView === "function") row.scrollIntoView({behavior:"smooth", block:"center"});
+      row.classList.remove("sim-row-highlight");
+      void row.offsetWidth;
+      row.classList.add("sim-row-highlight");
+      setTimeout(()=>row.classList.remove("sim-row-highlight"), 2900);
+    }
+  }, 60);
+}
+
+document.getElementById("simToggleBtn").addEventListener("click", ()=>{
+  SIM_MODE = !SIM_MODE;
+  const drawer = document.getElementById("simDrawer");
+  const btn    = document.getElementById("simToggleBtn");
+  const banner = document.getElementById("simBanner");
+  drawer.classList.toggle("open", SIM_MODE);
+  banner.classList.toggle("show", SIM_MODE);
+  btn.classList.toggle("active", SIM_MODE);
+  btn.textContent = SIM_MODE ? "✕ Exit Sim" : "⚡ Simulate";
+  document.body.classList.toggle("sim-mode", SIM_MODE);
+  if(SIM_MODE){
+    const d=getFiltered(), m=getMetrics(d);
+    buildSimDrawer(m);
+  } else {
+    resetSim();
+  }
+  render();
+});
+document.getElementById("simCloseBtn").addEventListener("click", ()=>{
+  SIM_MODE=false;
+  document.getElementById("simDrawer").classList.remove("open");
+  document.getElementById("simBanner").classList.remove("show");
+  document.getElementById("simToggleBtn").classList.remove("active");
+  document.getElementById("simToggleBtn").textContent="⚡ Simulate";
+  document.body.classList.remove("sim-mode");
+  resetSim();
+  render();
+});
+</script>
+</body>
+</html>
